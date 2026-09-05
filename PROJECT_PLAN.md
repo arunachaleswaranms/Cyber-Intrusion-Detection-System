@@ -36,7 +36,8 @@ or representative of modern traffic.
 | Automated tests | Passing locally and in GitHub Actions |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
-| Next milestone | Design duplicate-safe train/validation/test handling |
+| Split policy | Deterministic, target-aware, duplicate-safe v1 |
+| Next milestone | Build the v2.0 preprocessing pipeline |
 
 ## Release roadmap
 
@@ -55,7 +56,7 @@ Status: **Published; release tag pending**
 - [x] Remove duplicate code and invalid placeholder files.
 - [x] Push the completed commits to GitHub.
 - [x] Confirm the GitHub Actions test workflow passes on `main`.
-- [ ] Create the `v1.1.0` tag after CI passes.
+- [x] Create the `v1.1.0` tag after CI passes.
 
 Exit criteria: clean setup on Python 3.10+, tests pass in GitHub Actions, training
 and evaluation commands work with the documented source datasets, and no dataset
@@ -70,7 +71,7 @@ Status: **In progress**
 - [x] Select one primary modern dataset; do not add both initially.
 - [x] Define a stable attack-family taxonomy and normal/attack mapping.
 - [x] Add a dataset manifest and local-file integrity validation.
-- [ ] Add deterministic train/validation/test splits with duplicate safeguards.
+- [x] Add deterministic train/validation/test splits with duplicate safeguards.
 - [ ] Build a versioned preprocessing and feature-schema pipeline.
 - [ ] Compare a small model set: Random Forest, XGBoost or LightGBM, and one
       anomaly-detection baseline.
@@ -135,6 +136,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Select UNSW-NB15 as the only v2.0 primary dataset. | Its official prepared partitions and nine attack families provide a controlled path to a reproducible modern baseline; see ADR 0001. |
 | 2026-09-05 | Version the prepared UNSW-NB15 schema and fail closed on schema or label inconsistencies. | Prevents silent feature drift and makes binary and multiclass experiments comparable. |
 | 2026-09-05 | Pin the official prepared partitions by filename, size, row count, schema, and SHA-256. | Prevents mislabeled mirrors, incomplete downloads, and silent dataset substitution. |
+| 2026-09-05 | Keep the official test partition immutable and remove overlaps, target conflicts, and duplicate features only from training before deterministic validation splitting. | Prevents equivalent observations crossing evaluation boundaries while preserving the published holdout. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -156,6 +158,6 @@ Before finishing:
 
 ## Next session
 
-1. Create the `v1.1.0` tag when release housekeeping is performed.
-2. Design deterministic train/validation/test handling with duplicate safeguards.
-3. Review the data contracts before implementing v2.0 model training.
+1. Build the versioned v2.0 preprocessing pipeline for numerical and categorical features.
+2. Add serialization and train-only fitting tests.
+3. Review the complete data path before implementing v2.0 model training.
