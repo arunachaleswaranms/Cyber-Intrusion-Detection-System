@@ -3,6 +3,9 @@
 A reproducible classical machine-learning baseline for classifying network
 connections in the KDD Cup 1999 dataset.
 
+Development status, decisions, and the staged roadmap are maintained in
+[`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+
 > This project was originally created as a college project and repaired in v1.1.
 > KDD Cup 1999 is intentionally retained for historical continuity; its age and
 > known limitations make this a learning baseline, not a production IDS.
