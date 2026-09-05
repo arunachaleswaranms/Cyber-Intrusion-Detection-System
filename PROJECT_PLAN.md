@@ -37,7 +37,8 @@ or representative of modern traffic.
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
-| Next milestone | Build the v2.0 preprocessing pipeline |
+| Preprocessing | Versioned train-only pipeline with provenance metadata |
+| Next milestone | Implement the v2.0 model-training and evaluation baseline |
 
 ## Release roadmap
 
@@ -72,7 +73,7 @@ Status: **In progress**
 - [x] Define a stable attack-family taxonomy and normal/attack mapping.
 - [x] Add a dataset manifest and local-file integrity validation.
 - [x] Add deterministic train/validation/test splits with duplicate safeguards.
-- [ ] Build a versioned preprocessing and feature-schema pipeline.
+- [x] Build a versioned preprocessing and feature-schema pipeline.
 - [ ] Compare a small model set: Random Forest, XGBoost or LightGBM, and one
       anomaly-detection baseline.
 - [ ] Add precision, recall, macro/weighted F1, false-positive rate,
@@ -137,6 +138,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Version the prepared UNSW-NB15 schema and fail closed on schema or label inconsistencies. | Prevents silent feature drift and makes binary and multiclass experiments comparable. |
 | 2026-09-05 | Pin the official prepared partitions by filename, size, row count, schema, and SHA-256. | Prevents mislabeled mirrors, incomplete downloads, and silent dataset substitution. |
 | 2026-09-05 | Keep the official test partition immutable and remove overlaps, target conflicts, and duplicate features only from training before deterministic validation splitting. | Prevents equivalent observations crossing evaluation boundaries while preserving the published holdout. |
+| 2026-09-05 | Preserve numerical units and fit one-hot categorical vocabularies only on the prepared training split. | Matches the planned tree models, improves explanation readability, and prevents category leakage. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -158,6 +160,6 @@ Before finishing:
 
 ## Next session
 
-1. Build the versioned v2.0 preprocessing pipeline for numerical and categorical features.
-2. Add serialization and train-only fitting tests.
-3. Review the complete data path before implementing v2.0 model training.
+1. Implement Random Forest and gradient-boosted tree baselines for both tasks.
+2. Add security-relevant validation metrics and inference timing.
+3. Keep the official test partition sealed until model selection is complete.
