@@ -1,86 +1,101 @@
+# Cyber Intrusion Detection System
 
+A reproducible classical machine-learning baseline for classifying network
+connections in the KDD Cup 1999 dataset.
 
-# Cyber Intrusion Detection System Using Machine Learning
+> This project was originally created as a college project and repaired in v1.1.
+> KDD Cup 1999 is intentionally retained for historical continuity; its age and
+> known limitations make this a learning baseline, not a production IDS.
 
-## Overview
-This project involves developing a Cyber Intrusion Detection System (IDS) using various machine learning algorithms. The IDS aims to detect network intrusions with high accuracy and low false positive rates.
-The project utilizes the KDD Cup 1999 dataset for training and testing the machine learning models.
+## What v1.1 fixes
 
-## Project Structure
-The repository is organized into the following files and directories:
+- Prevents data leakage by fitting preprocessing only on training data.
+- Reads the original KDD Cup headerless `.gz` files directly.
+- Handles unseen test-set categories without fitting on the test set.
+- Saves preprocessing and each classifier together as one inference pipeline.
+- Uses deterministic model seeds and reports per-class metrics.
+- Adds automated tests and GitHub Actions.
+- Removes duplicate and unused code and invalid placeholder dataset files.
 
-- `data_preprocessing.py`: Script for preprocessing the KDD Cup 1999 dataset.
-- `model_training.py`: Script for training machine learning models.
-- `model_evaluation.py`: Script for evaluating the performance of trained models.
-- `data_preprocessing.ipynb`: Jupyter notebook for data preprocessing.
-- `model_training.ipynb`: Jupyter notebook for model training.
-- `model_evaluation.ipynb`: Jupyter notebook for model evaluation.
-- `requirements.txt`: List of Python dependencies.
-- `README.md`: Project documentation.
+## Models and evaluation
 
-## Installation
-To set up the project on your local machine, follow these steps:
+The baseline trains Random Forest and Gradient Boosting classifiers. Evaluation
+reports accuracy, a per-class precision/recall/F1 report, and a confusion matrix.
+For intrusion detection, examine per-class recall and false positives instead of
+using accuracy alone.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System.git
-   cd Cyber-Intrusion-Detection-System
-   ```
+## Repository structure
 
-2. **Create a virtual environment and activate it:**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate   # On Windows use `venv\Scripts\activate`
-   ```
-
-3. **Install the required dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Dataset
-The KDD Cup 1999 dataset is used for training and testing the models. You can download the dataset from the following links and place the CSV files in the project directory:
-
-- [KDDTrain+.csv](http://kdd.ics.uci.edu/databases/kddcup99/kddcup.data_10_percent.gz)
-- [KDDTest+.csv](http://kdd.ics.uci.edu/databases/kddcup99/corrected.gz)
-
-## Usage
-
-### Data Preprocessing
-To preprocess the dataset, run the `data_preprocessing.py` script:
-```bash
-python data_preprocessing.py
+```text
+.
+├── dataset/                 # Dataset metadata and download instructions
+├── notebooks/               # Original exploratory notebooks
+├── src/
+│   ├── data_preprocessing.py
+│   ├── model_training.py
+│   └── model_evaluation.py
+├── tests/
+├── .github/workflows/test.yml
+├── requirements.txt
+└── requirements-dev.txt
 ```
-Alternatively, you can explore the preprocessing steps using the `data_preprocessing.ipynb` notebook.
 
-### Model Training
-To train the machine learning models, run the `model_training.py` script:
+## Setup
+
+Requires Python 3.10 or newer.
+
 ```bash
-python model_training.py
+git clone https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System.git
+cd Cyber-Intrusion-Detection-System
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
-Alternatively, you can explore the training steps using the `model_training.ipynb` notebook.
 
-### Model Evaluation
-To evaluate the trained models, run the `model_evaluation.py` script:
+On Windows PowerShell, activate the environment with
+`.venv\Scripts\Activate.ps1`.
+
+Follow [`dataset/README.md`](dataset/README.md) to download:
+
+```text
+dataset/kddcup.data_10_percent.gz
+dataset/corrected.gz
+```
+
+## Train and evaluate
+
+Train both models, save complete pipelines under `models/`, and evaluate them on
+the official corrected test set:
+
 ```bash
-python model_evaluation.py
+python src/model_training.py \
+  --train dataset/kddcup.data_10_percent.gz \
+  --test dataset/corrected.gz
 ```
-Alternatively, you can explore the evaluation steps using the `model_evaluation.ipynb` notebook.
 
-## Project Workflow
-1. **Data Preprocessing:** Clean, normalize, and transform the raw data from the KDD Cup 1999 dataset.
-2. **Model Training:** Train machine learning models (Random Forest and Gradient Boosting) using the preprocessed data.
-3. **Model Evaluation:** Evaluate the trained models on the test dataset and generate evaluation reports.
+Evaluate previously saved pipelines without retraining:
 
-## Results
-The project successfully developed a Cyber IDS that detects network intrusions with high accuracy and low false positive rates. The machine learning algorithms, particularly Random Forest and Gradient Boosting, proved effective in identifying various types of cyber attacks.
+```bash
+python src/model_evaluation.py \
+  --test dataset/corrected.gz \
+  models/random_forest.joblib \
+  models/gradient_boosting.joblib
+```
 
-## Future Work
-Future work will focus on:
-- Addressing identified areas for improvement.
-- Expanding the scope of the IDS.
-- Further optimizing the performance of the models.
+## Tests
 
-## Contributions
-Contributions are welcome! If you have any suggestions or improvements, please open an issue or submit a pull request.
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
 
+## Limitations and roadmap
+
+KDD Cup 1999 contains synthetic, outdated traffic and duplicated records. This
+baseline must not be used to claim present-day detection performance. A future
+v2 can introduce a modern dataset, explicit attack-family mapping, richer IDS
+metrics, explainability, and a small analyst dashboard.
+
+## License
+
+Licensed under the [MIT License](LICENSE).

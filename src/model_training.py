@@ -1,62 +1,58 @@
-# model_training.py
+"""Train reproducible KDD Cup 1999 baseline models."""
 
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from sklearn.model_selection import train_test_split
-from data_preprocessing import load_data, preprocess_data
+from __future__ import annotations
 
-def train_random_forest(X_train, y_train):
-    """
-    Train a Random Forest classifier.
-    """
-    rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
-    rf_model.fit(X_train, y_train)
-    return rf_model
+import argparse
+from pathlib import Path
 
-def train_gradient_boosting(X_train, y_train):
-    """
-    Train a Gradient Boosting classifier.
-    """
-    gb_model = GradientBoostingClassifier(n_estimators=100, random_state=42)
-    gb_model.fit(X_train, y_train)
-    return gb_model
+import joblib
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.pipeline import Pipeline
 
-def evaluate_model(model, X_test, y_test):
-    """
-    Evaluate the trained model using test data.
-    """
-    y_pred = model.predict(X_test)
-    print("Confusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred))
-    print("\nAccuracy Score:")
-    print(accuracy_score(y_test, y_pred))
+from data_preprocessing import build_preprocessor, load_dataset, split_features_target
+from model_evaluation import calculate_metrics, print_metrics
 
-if __name__ == '__main__':
-    train_path = 'KDDTrain+.csv'
-    test_path = 'KDDTest+.csv'
+RANDOM_STATE = 42
 
-    # Load and preprocess data
-    train_df, test_df = load_data(train_path, test_path)
-    X_train, X_test, y_train, y_test = preprocess_data(train_df, test_df)
 
-    # Train Random Forest model
-    print("Training Random Forest model...")
-    rf_model = train_random_forest(X_train, y_train)
-    print("Random Forest model trained.")
+def build_models() -> dict[str, object]:
+    return {
+        "random_forest": RandomForestClassifier(
+            n_estimators=100, random_state=RANDOM_STATE, n_jobs=-1
+        ),
+        "gradient_boosting": GradientBoostingClassifier(random_state=RANDOM_STATE),
+    }
 
-    # Evaluate Random Forest model
-    print("\nEvaluating Random Forest model...")
-    evaluate_model(rf_model, X_test, y_test)
 
-    # Train Gradient Boosting model
-    print("Training Gradient Boosting model...")
-    gb_model = train_gradient_boosting(X_train, y_train)
-    print("Gradient Boosting model trained.")
+def train_models(train_path: str, output_dir: str, test_path: str | None = None) -> None:
+    X_train, y_train = split_features_target(load_dataset(train_path))
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    test_data = split_features_target(load_dataset(test_path)) if test_path else None
 
-    # Evaluate Gradient Boosting model
-    print("\nEvaluating Gradient Boosting model...")
-    evaluate_model(gb_model, X_test, y_test)
+    for name, estimator in build_models().items():
+        pipeline = Pipeline(
+            [("preprocessor", build_preprocessor()), ("classifier", estimator)]
+        )
+        print(f"Training {name}...")
+        pipeline.fit(X_train, y_train)
+        model_path = output / f"{name}.joblib"
+        joblib.dump(pipeline, model_path)
+        print(f"Saved {model_path}")
+
+        if test_data:
+            X_test, y_test = test_data
+            print_metrics(name, calculate_metrics(pipeline, X_test, y_test))
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--train", required=True, help="KDD Cup training file")
+    parser.add_argument("--test", help="Optional held-out test file")
+    parser.add_argument("--output-dir", default="models", help="Model output directory")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    train_models(args.train, args.output_dir, args.test)

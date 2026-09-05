@@ -9,10 +9,11 @@ __pycache__/
 # Data files
 data/*.csv
 data/*.log
+data/*.gz
+models/
 
 # Virtual environment
 venv/
+.venv/
 .env
-
-# Environment variables
-.env
+.pytest_cache/

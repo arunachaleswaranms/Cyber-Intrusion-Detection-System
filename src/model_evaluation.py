@@ -1,48 +1,47 @@
-# model_evaluation.py
+"""Evaluate saved IDS models against a held-out KDD Cup dataset."""
 
-import pandas as pd
-import numpy as np
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
 import joblib
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from data_preprocessing import load_data, preprocess_data
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-def load_model(model_path):
-    """
-    Load a trained model from a file.
-    """
-    return joblib.load(model_path)
+from data_preprocessing import load_dataset, split_features_target
 
-def evaluate_model(model, X_test, y_test):
-    """
-    Evaluate the trained model using test data.
-    """
-    y_pred = model.predict(X_test)
-    print("Confusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred))
-    print("\nAccuracy Score:")
-    print(accuracy_score(y_test, y_pred))
 
-if __name__ == '__main__':
-    train_path = 'KDDTrain+.csv'
-    test_path = 'KDDTest+.csv'
+def calculate_metrics(model: object, features, labels) -> dict:
+    predictions = model.predict(features)
+    return {
+        "accuracy": accuracy_score(labels, predictions),
+        "classification_report": classification_report(
+            labels, predictions, output_dict=True, zero_division=0
+        ),
+        "confusion_matrix": confusion_matrix(labels, predictions).tolist(),
+    }
 
-    # Load and preprocess data
-    train_df, test_df = load_data(train_path, test_path)
-    X_train, X_test, y_train, y_test = preprocess_data(train_df, test_df)
 
-    # Load trained models
-    rf_model_path = 'random_forest_model.joblib'
-    gb_model_path = 'gradient_boosting_model.joblib'
+def print_metrics(model_name: str, metrics: dict) -> None:
+    print(f"\nResults for {model_name}")
+    print(json.dumps(metrics, indent=2))
 
-    rf_model = load_model(rf_model_path)
-    gb_model = load_model(gb_model_path)
 
-    # Evaluate Random Forest model
-    print("Evaluating Random Forest model...")
-    evaluate_model(rf_model, X_test, y_test)
+def evaluate_models(model_paths: list[str], test_path: str) -> None:
+    X_test, y_test = split_features_target(load_dataset(test_path))
+    for model_path in model_paths:
+        model = joblib.load(model_path)
+        print_metrics(Path(model_path).stem, calculate_metrics(model, X_test, y_test))
 
-    # Evaluate Gradient Boosting model
-    print("\nEvaluating Gradient Boosting model...")
-    evaluate_model(gb_model, X_test, y_test)
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--test", required=True, help="Held-out KDD Cup test file")
+    parser.add_argument("models", nargs="+", help="One or more saved .joblib pipelines")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    evaluate_models(args.models, args.test)
