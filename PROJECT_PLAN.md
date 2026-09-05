@@ -67,7 +67,7 @@ Status: **In progress**
 - [x] Write [a dataset decision record](docs/decisions/0001-v2-primary-dataset.md)
       comparing UNSW-NB15 and CICIDS2017.
 - [x] Select one primary modern dataset; do not add both initially.
-- [ ] Define a stable attack-family taxonomy and normal/attack mapping.
+- [x] Define a stable attack-family taxonomy and normal/attack mapping.
 - [ ] Add deterministic train/validation/test splits with duplicate safeguards.
 - [ ] Build a versioned preprocessing and feature-schema pipeline.
 - [ ] Compare a small model set: Random Forest, XGBoost or LightGBM, and one
@@ -131,6 +131,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Save complete sklearn pipelines. | Keeps training and inference transformations consistent. |
 | 2026-09-05 | Defer dashboard and PCAP ingestion until the modern baseline is sound. | Avoids building presentation layers on an unreliable model foundation. |
 | 2026-09-05 | Select UNSW-NB15 as the only v2.0 primary dataset. | Its official prepared partitions and nine attack families provide a controlled path to a reproducible modern baseline; see ADR 0001. |
+| 2026-09-05 | Version the prepared UNSW-NB15 schema and fail closed on schema or label inconsistencies. | Prevents silent feature drift and makes binary and multiclass experiments comparable. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -153,7 +154,6 @@ Before finishing:
 ## Next session
 
 1. Create the `v1.1.0` tag when release housekeeping is performed.
-2. Define the canonical UNSW-NB15 feature schema and attack-family mapping.
-3. Add a dataset manifest and local-file validation without distributing data.
-4. Design deterministic train/validation/test handling with duplicate safeguards.
-5. Review those contracts before implementing v2.0 model training.
+2. Add a dataset manifest and local-file validation without distributing data.
+3. Design deterministic train/validation/test handling with duplicate safeguards.
+4. Review those contracts before implementing v2.0 model training.
