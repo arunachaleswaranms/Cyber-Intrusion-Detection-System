@@ -28,19 +28,20 @@ or representative of modern traffic.
 
 | Item | State |
 |---|---|
-| Active release | v1.1 |
-| Release status | Complete locally; publication pending GitHub authentication |
+| Active release | v2.0 |
+| Release status | v1.1 published on `main`; v2.0 design in progress |
 | v1.1 implementation commit | `516ca7099ef3fa5f1629e1ad8829573c5300a403` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | Baseline models | Random Forest and Gradient Boosting |
-| Automated tests | Passing |
-| Next milestone | Publish v1.1, verify CI, then design v2.0 dataset pipeline |
+| Automated tests | Passing locally and in GitHub Actions |
+| v2.0 primary dataset | UNSW-NB15 |
+| Next milestone | Define and test the v2.0 feature and label schema |
 
 ## Release roadmap
 
 ### v1.1 — Repair the original baseline
 
-Status: **Complete locally**
+Status: **Published; release tag pending**
 
 - [x] Remove train/test preprocessing leakage.
 - [x] Load original headerless KDD Cup gzip files correctly.
@@ -51,8 +52,8 @@ Status: **Complete locally**
 - [x] Add unit tests and GitHub Actions.
 - [x] Correct README commands, claims, limitations, and dataset instructions.
 - [x] Remove duplicate code and invalid placeholder files.
-- [ ] Push the completed commits to GitHub.
-- [ ] Confirm the GitHub Actions test workflow passes on `main`.
+- [x] Push the completed commits to GitHub.
+- [x] Confirm the GitHub Actions test workflow passes on `main`.
 - [ ] Create the `v1.1.0` tag after CI passes.
 
 Exit criteria: clean setup on Python 3.10+, tests pass in GitHub Actions, training
@@ -61,10 +62,11 @@ or generated model is committed.
 
 ### v2.0 — Modern ML baseline
 
-Status: **Planned**
+Status: **In progress**
 
-- [ ] Write a short dataset decision record comparing UNSW-NB15 and CICIDS2017.
-- [ ] Select one primary modern dataset; do not add both initially.
+- [x] Write [a dataset decision record](docs/decisions/0001-v2-primary-dataset.md)
+      comparing UNSW-NB15 and CICIDS2017.
+- [x] Select one primary modern dataset; do not add both initially.
 - [ ] Define a stable attack-family taxonomy and normal/attack mapping.
 - [ ] Add deterministic train/validation/test splits with duplicate safeguards.
 - [ ] Build a versioned preprocessing and feature-schema pipeline.
@@ -128,6 +130,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Fit preprocessing on training data only. | Prevents evaluation leakage. |
 | 2026-09-05 | Save complete sklearn pipelines. | Keeps training and inference transformations consistent. |
 | 2026-09-05 | Defer dashboard and PCAP ingestion until the modern baseline is sound. | Avoids building presentation layers on an unreliable model foundation. |
+| 2026-09-05 | Select UNSW-NB15 as the only v2.0 primary dataset. | Its official prepared partitions and nine attack families provide a controlled path to a reproducible modern baseline; see ADR 0001. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -149,9 +152,8 @@ Before finishing:
 
 ## Next session
 
-1. Authenticate GitHub access safely.
-2. Push the v1.1 cleanup and this project-plan commit.
-3. Verify the Actions workflow on `main`.
-4. Tag `v1.1.0` only after CI passes.
-5. Start the v2.0 dataset decision record; no v2 implementation before that
-   decision is reviewed.
+1. Create the `v1.1.0` tag when release housekeeping is performed.
+2. Define the canonical UNSW-NB15 feature schema and attack-family mapping.
+3. Add a dataset manifest and local-file validation without distributing data.
+4. Design deterministic train/validation/test handling with duplicate safeguards.
+5. Review those contracts before implementing v2.0 model training.
