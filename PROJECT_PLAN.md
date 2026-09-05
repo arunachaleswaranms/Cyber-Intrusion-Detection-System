@@ -29,16 +29,18 @@ or representative of modern traffic.
 | Item | State |
 |---|---|
 | Active release | v2.0 |
-| Release status | v1.1 published on `main`; v2.0 design in progress |
+| Release status | v1.1 published on `main`; v2.0 implementation in progress |
 | v1.1 implementation commit | `516ca7099ef3fa5f1629e1ad8829573c5300a403` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
-| Baseline models | Random Forest and Gradient Boosting |
+| v1.1 baseline models | Random Forest and Gradient Boosting |
 | Automated tests | Passing locally and in GitHub Actions |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
 | Preprocessing | Versioned train-only pipeline with provenance metadata |
-| Next milestone | Implement the v2.0 model-training and evaluation baseline |
+| v2.0 supervised models | Random Forest and Histogram Gradient Boosting validated |
+| Official test state | Sealed; no v2.0 model evaluation performed |
+| Next milestone | Add anomaly baseline and freeze experiment configuration |
 
 ## Release roadmap
 
@@ -74,13 +76,14 @@ Status: **In progress**
 - [x] Add a dataset manifest and local-file integrity validation.
 - [x] Add deterministic train/validation/test splits with duplicate safeguards.
 - [x] Build a versioned preprocessing and feature-schema pipeline.
-- [ ] Compare a small model set: Random Forest, XGBoost or LightGBM, and one
-      anomaly-detection baseline.
-- [ ] Add precision, recall, macro/weighted F1, false-positive rate,
+- [ ] Compare a small model set:
+  - [x] Random Forest and Histogram Gradient Boosting supervised baselines.
+  - [ ] One training-only anomaly-detection baseline.
+- [x] Add precision, recall, macro/weighted F1, false-positive rate,
       false-negative rate, PR-AUC, ROC-AUC where applicable, per-family detection
-      rate, and inference latency.
+      rate, and inference latency for supervised models.
 - [ ] Add configuration files for experiments and persist result metadata.
-- [ ] Add tests covering schema validation, leakage prevention, label mapping,
+- [x] Add tests covering schema validation, leakage prevention, label mapping,
       serialization, and deterministic outputs.
 - [ ] Document reproducible benchmark results and limitations.
 
@@ -139,6 +142,8 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Pin the official prepared partitions by filename, size, row count, schema, and SHA-256. | Prevents mislabeled mirrors, incomplete downloads, and silent dataset substitution. |
 | 2026-09-05 | Keep the official test partition immutable and remove overlaps, target conflicts, and duplicate features only from training before deterministic validation splitting. | Prevents equivalent observations crossing evaluation boundaries while preserving the published holdout. |
 | 2026-09-05 | Preserve numerical units and fit one-hot categorical vocabularies only on the prepared training split. | Matches the planned tree models, improves explanation readability, and prevents category leakage. |
+| 2026-09-05 | Use Random Forest and scikit-learn Histogram Gradient Boosting for the first supervised comparison. | Provides bagged and boosted tree baselines without adding a native external dependency; XGBoost or LightGBM can be reconsidered only if controlled validation justifies it. |
+| 2026-09-05 | Select supervised models only from validation metrics and keep the official test sealed until configuration is frozen. | Prevents test-driven model choice and preserves an honest final holdout. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -160,6 +165,6 @@ Before finishing:
 
 ## Next session
 
-1. Implement Random Forest and gradient-boosted tree baselines for both tasks.
-2. Add security-relevant validation metrics and inference timing.
-3. Keep the official test partition sealed until model selection is complete.
+1. Implement a training-only anomaly-detection baseline with comparable metrics.
+2. Add versioned experiment configuration and freeze the selection rule.
+3. Reproduce all validation runs before unlocking the official test once.

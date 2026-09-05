@@ -1,40 +1,54 @@
 # Cyber Intrusion Detection System
 
-A reproducible classical machine-learning baseline for classifying network
-connections in the KDD Cup 1999 dataset.
+A reproducible network-intrusion detection research project built with classical
+machine learning. The repository preserves its original college-project history
+while rebuilding the methodology in controlled, testable releases.
 
 Development status, decisions, and the staged roadmap are maintained in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
 
-> This project was originally created as a college project and repaired in v1.1.
-> KDD Cup 1999 is intentionally retained for historical continuity; its age and
-> known limitations make this a learning baseline, not a production IDS.
+> This is an offline research and portfolio project, not a production IDS. It
+> does not inspect, block, or respond to live traffic.
 
-## What v1.1 fixes
+## Release tracks
 
-- Prevents data leakage by fitting preprocessing only on training data.
-- Reads the original KDD Cup headerless `.gz` files directly.
-- Handles unseen test-set categories without fitting on the test set.
-- Saves preprocessing and each classifier together as one inference pipeline.
-- Uses deterministic model seeds and reports per-class metrics.
-- Adds automated tests and GitHub Actions.
-- Removes duplicate and unused code and invalid placeholder dataset files.
+| Release | Dataset | Purpose | Status |
+|---|---|---|---|
+| v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
+| v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
+| v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | In progress |
 
-## Models and evaluation
+## Current v2.0 capabilities
 
-The baseline trains Random Forest and Gradient Boosting classifiers. Evaluation
-reports accuracy, a per-class precision/recall/F1 report, and a confusion matrix.
-For intrusion detection, examine per-class recall and false positives instead of
-using accuracy alone.
+- Pins the official UNSW-NB15 prepared partitions by SHA-256, size, record count,
+  and schema.
+- Normalizes a versioned ten-class taxonomy: normal plus nine attack families.
+- Removes official-test overlaps, target conflicts, and duplicate feature vectors
+  from training before deterministic validation splitting.
+- Fits numerical/categorical preprocessing only on the cleaned training split.
+- Trains seeded Random Forest and histogram gradient-boosting baselines.
+- Selects models using validation data only; the official test remains sealed.
+- Reports macro/weighted precision, recall and F1, false-positive and
+  false-negative rates, ROC-AUC, PR-AUC, per-family detection rate, confusion
+  matrices, and prediction latency.
+- Persists trusted local model artifacts and machine-readable experiment results.
+
+See [`docs/supervised-baselines.md`](docs/supervised-baselines.md) for the
+methodology and current validation snapshot.
 
 ## Repository structure
 
 ```text
 .
-├── dataset/                 # Dataset metadata and download instructions
-├── notebooks/               # Original exploratory notebooks
+├── dataset/                     # Dataset manifests and download instructions
+├── docs/                        # Decisions, schemas, policies, and results
+├── notebooks/                   # Original exploratory notebooks
 ├── src/
-│   ├── data_preprocessing.py
+│   ├── cids/                    # Versioned v2.0 package
+│   │   ├── datasets/
+│   │   ├── experiments/
+│   │   └── modeling/
+│   ├── data_preprocessing.py    # v1.1 historical baseline
 │   ├── model_training.py
 │   └── model_evaluation.py
 ├── tests/
@@ -58,17 +72,38 @@ pip install -r requirements.txt
 On Windows PowerShell, activate the environment with
 `.venv\Scripts\Activate.ps1`.
 
-Follow [`dataset/README.md`](dataset/README.md) to download:
+## Run the v2.0 supervised validation benchmark
 
-```text
-dataset/kddcup.data_10_percent.gz
-dataset/corrected.gz
+Follow [`dataset/unsw-nb15/README.md`](dataset/unsw-nb15/README.md) and place the
+two official prepared CSV files under `dataset/unsw-nb15/raw/`. The command first
+verifies both files against the committed manifest.
+
+Binary classification:
+
+```bash
+PYTHONPATH=src python -m cids.experiments.train_supervised \
+  --data-dir dataset/unsw-nb15/raw \
+  --task binary \
+  --output-dir artifacts/v2/binary
 ```
 
-## Train and evaluate
+Attack-family classification:
 
-Train both models, save complete pipelines under `models/`, and evaluate them on
-the official corrected test set:
+```bash
+PYTHONPATH=src python -m cids.experiments.train_supervised \
+  --data-dir dataset/unsw-nb15/raw \
+  --task multiclass \
+  --output-dir artifacts/v2/multiclass
+```
+
+Each run creates two trusted local `.joblib` model artifacts and a
+`validation_results.json` report. Generated artifacts and datasets are ignored by
+Git. Joblib is pickle-based, so never load artifacts from untrusted sources.
+
+## Run the v1.1 historical baseline
+
+Follow [`dataset/README.md`](dataset/README.md) to download the KDD Cup files,
+then run:
 
 ```bash
 python src/model_training.py \
@@ -76,7 +111,7 @@ python src/model_training.py \
   --test dataset/corrected.gz
 ```
 
-Evaluate previously saved pipelines without retraining:
+Evaluate previously saved v1.1 pipelines without retraining:
 
 ```bash
 python src/model_evaluation.py \
@@ -92,12 +127,13 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-## Limitations and roadmap
+## Limitations
 
-KDD Cup 1999 contains synthetic, outdated traffic and duplicated records. This
-baseline must not be used to claim present-day detection performance. A future
-v2 can introduce a modern dataset, explicit attack-family mapping, richer IDS
-metrics, explainability, and a small analyst dashboard.
+UNSW-NB15 and KDD Cup 1999 contain synthetic, dated research traffic. Validation
+performance does not demonstrate effectiveness against current production
+networks. v2.0 currently consumes prepared CSV flow records; it does not capture
+packets, extract live flows, or automate security response. Review the roadmap
+before interpreting or extending the project.
 
 ## License
 
