@@ -35,7 +35,8 @@ or representative of modern traffic.
 | Baseline models | Random Forest and Gradient Boosting |
 | Automated tests | Passing locally and in GitHub Actions |
 | v2.0 primary dataset | UNSW-NB15 |
-| Next milestone | Define and test the v2.0 feature and label schema |
+| Dataset integrity | Official partitions pinned by SHA-256 manifest |
+| Next milestone | Design duplicate-safe train/validation/test handling |
 
 ## Release roadmap
 
@@ -68,6 +69,7 @@ Status: **In progress**
       comparing UNSW-NB15 and CICIDS2017.
 - [x] Select one primary modern dataset; do not add both initially.
 - [x] Define a stable attack-family taxonomy and normal/attack mapping.
+- [x] Add a dataset manifest and local-file integrity validation.
 - [ ] Add deterministic train/validation/test splits with duplicate safeguards.
 - [ ] Build a versioned preprocessing and feature-schema pipeline.
 - [ ] Compare a small model set: Random Forest, XGBoost or LightGBM, and one
@@ -132,6 +134,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Defer dashboard and PCAP ingestion until the modern baseline is sound. | Avoids building presentation layers on an unreliable model foundation. |
 | 2026-09-05 | Select UNSW-NB15 as the only v2.0 primary dataset. | Its official prepared partitions and nine attack families provide a controlled path to a reproducible modern baseline; see ADR 0001. |
 | 2026-09-05 | Version the prepared UNSW-NB15 schema and fail closed on schema or label inconsistencies. | Prevents silent feature drift and makes binary and multiclass experiments comparable. |
+| 2026-09-05 | Pin the official prepared partitions by filename, size, row count, schema, and SHA-256. | Prevents mislabeled mirrors, incomplete downloads, and silent dataset substitution. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -154,6 +157,5 @@ Before finishing:
 ## Next session
 
 1. Create the `v1.1.0` tag when release housekeeping is performed.
-2. Add a dataset manifest and local-file validation without distributing data.
-3. Design deterministic train/validation/test handling with duplicate safeguards.
-4. Review those contracts before implementing v2.0 model training.
+2. Design deterministic train/validation/test handling with duplicate safeguards.
+3. Review the data contracts before implementing v2.0 model training.

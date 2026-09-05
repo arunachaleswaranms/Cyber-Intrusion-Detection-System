@@ -11,6 +11,9 @@ data/*.csv
 data/*.log
 data/*.gz
 models/
+dataset/**/*.csv
+dataset/**/*.parquet
+dataset/**/*.zip
 
 # Virtual environment
 venv/
