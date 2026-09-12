@@ -31,7 +31,7 @@ or representative of modern traffic.
 
 | Item | State |
 |---|---|
-| Active release | v2.1 planning |
+| Active release | v2.1 implementation |
 | Release status | v2.0 published as tag and GitHub Release `v2.0.0` |
 | v1.1 implementation commit | `516ca7099ef3fa5f1629e1ad8829573c5300a403` |
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
@@ -53,7 +53,7 @@ or representative of modern traffic.
 | Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
 | Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
-| Next milestone | Define the v2.1 dashboard and explainability contract before implementation |
+| Next milestone | Implement Phase 1 contracts and complete the explainability technical gate |
 
 ## Release roadmap
 
@@ -109,15 +109,24 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Planning**
+Status: **Design complete; implementation not started**
 
-- [ ] Add a Streamlit dashboard for dataset or flow-file analysis.
-- [ ] Show alert timeline, attack family, confidence, and severity.
-- [ ] Add global and per-detection SHAP explanations.
-- [ ] Add false-positive review and threshold-tuning views.
-- [ ] Clearly distinguish model confidence from operational risk severity.
-- [ ] Add safe sample data for demonstrations.
-- [ ] Package the application with Docker and document local startup.
+The approved architecture, user journeys, contracts, security controls, phases,
+and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
+[ADR 0002](docs/decisions/0002-v2.1-analyst-workbench.md).
+
+- [x] Define the product boundary and evidence-first reviewer journey.
+- [x] Define feature CSV, prediction, alert, and model-pack contracts.
+- [x] Define model-loading trust boundaries and a dashboard threat model.
+- [x] Define score, false-positive, timestamp, and explanation terminology.
+- [x] Define phased implementation and release acceptance criteria.
+- [ ] Phase 1: implement framework-independent input and evidence contracts.
+- [ ] Phase 1: implement trusted-model-pack schema and preflight.
+- [ ] Phase 1: complete the pinned SHAP compatibility/correctness/performance spike.
+- [ ] Phase 2: implement the evidence-first Streamlit pages.
+- [ ] Phase 3: implement trusted local inference, review, and safe export.
+- [ ] Phase 4: implement the approved explanation path and synthetic sample.
+- [ ] Phase 5: add pinned dashboard dependencies, Docker, and release checks.
 
 Exit criteria: a reviewer can run the dashboard locally, analyze safe sample
 data, understand why detections occurred, and inspect false positives.
@@ -169,6 +178,9 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-12 | Pin the final benchmark to Python 3.12 and an exact dependency lock, while permitting at most `0.005` absolute selected-metric variation across platforms. | The Apple Silicon rerun matched the pinned dataset, documented row counts, winners, and rankings; recorded deterministic split fingerprints; and had a largest metric difference of `0.003841`. Exact floating-point equality was not portable. This amendment was made while the official test remained sealed. |
 | 2026-09-12 | Freeze the single official-test run without test-driven retuning. | Binary macro F1 was `0.8663` with a `0.2689` false-positive rate; multiclass macro F1 was `0.5029`, exposing weak minority-family generalization. Honest held-out results and limitations provide more research and portfolio value than optimizing against the test partition. |
 | 2026-09-12 | Publish v2.0 as annotated tag and GitHub Release `v2.0.0`. | Freezes the reproducible UNSW-NB15 baseline and creates a clear boundary before any dashboard, explainability, or later model experiment. |
+| 2026-09-12 | Build v2.1 as an evidence-first local analyst workbench with a separate opt-in trusted inference mode. | Gives reviewers value from a clean clone while preventing model uploads and keeping executable local artifacts outside the default path; see ADR 0002. |
+| 2026-09-12 | Use `model score (uncalibrated)`, review queue bands, and record sequence unless real timestamps are supplied. | v2.0 did not establish calibration or operational risk, and the prepared schema has no event timestamp or network identity fields. |
+| 2026-09-12 | Put SHAP behind a pinned technical gate and keep official-test data out of explanation backgrounds and threshold experiments. | Avoids claiming unsupported explanations and preserves the frozen v2.0 test boundary. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -190,8 +202,7 @@ Before finishing:
 
 ## Next session
 
-1. Define v2.1 user journeys, input/output contracts, and acceptance criteria.
-2. Decide how the dashboard obtains trusted local models without committing or
-   automatically loading unsafe pickle artifacts.
-3. Design explainability and false-positive analysis around the frozen v2.0
-   limitations without retraining from its official-test results.
+1. Implement Phase 1 input and evidence contracts without importing Streamlit.
+2. Implement the trusted-model-pack manifest and pre-deserialization checks.
+3. Run the pinned SHAP spike for both selected Histogram Gradient Boosting models
+   and record the go/no-go decision before building explanation UI.

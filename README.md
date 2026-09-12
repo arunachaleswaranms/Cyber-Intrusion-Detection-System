@@ -17,6 +17,11 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Design complete; implementation next |
+
+The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
+and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
+Implementation has not started yet.
 
 ## Current v2.0 capabilities
 
