@@ -17,6 +17,7 @@ from cids.datasets.unsw_nb15 import (
     FEATURE_COLUMNS,
     ID_COLUMN,
     SCHEMA_VERSION,
+    validate_model_feature_frame,
     validate_prepared_frame,
 )
 
@@ -35,6 +36,15 @@ class PreparedSplits:
     train: pd.DataFrame
     validation: pd.DataFrame
     test: pd.DataFrame
+    report: dict
+
+
+@dataclass(frozen=True)
+class PreparedDevelopmentSplits:
+    """Clean train/validation data with a feature-only official-test reference."""
+
+    train: pd.DataFrame
+    validation: pd.DataFrame
     report: dict
 
 
@@ -209,6 +219,68 @@ def prepare_splits(
         "official_test_diagnostics": _test_diagnostics(test, target),
     }
     return PreparedSplits(train=train, validation=validation, test=test, report=report)
+
+
+def prepare_development_splits(
+    official_train: pd.DataFrame,
+    official_test_features: pd.DataFrame,
+    task: Task,
+    validation_fraction: float = DEFAULT_VALIDATION_FRACTION,
+    seed: int = DEFAULT_RANDOM_SEED,
+) -> PreparedDevelopmentSplits:
+    """Prepare development data without reading official-test IDs or targets."""
+    target = target_for_task(task)
+    train_source = validate_prepared_frame(official_train).reset_index(drop=True)
+    test_reference = validate_model_feature_frame(official_test_features).reset_index(
+        drop=True
+    )
+    source_train_rows = len(train_source)
+
+    overlap_indices = _exact_overlap_indices(train_source, test_reference)
+    cleaned = train_source.drop(index=overlap_indices)
+    conflict_indices, conflicting_groups = _conflicting_group_indices(cleaned, target)
+    cleaned = cleaned.drop(index=conflict_indices)
+
+    features = list(FEATURE_COLUMNS)
+    redundant_mask = cleaned.duplicated(features, keep="first")
+    redundant_rows = int(redundant_mask.sum())
+    cleaned = cleaned.loc[~redundant_mask].copy()
+    train, validation = _deterministic_stratified_split(
+        cleaned, target, validation_fraction, seed
+    )
+    report = {
+        "split_policy_version": SPLIT_POLICY_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "task": task,
+        "target": target,
+        "seed": seed,
+        "validation_fraction": validation_fraction,
+        "source_rows": {
+            "official_train": source_train_rows,
+            "official_test_feature_reference": len(test_reference),
+        },
+        "removed_from_training": {
+            "official_test_feature_overlap": len(overlap_indices),
+            "conflicting_target_groups": conflicting_groups,
+            "conflicting_target_rows": len(conflict_indices),
+            "redundant_feature_rows": redundant_rows,
+        },
+        "prepared_rows": {"train": len(train), "validation": len(validation)},
+        "class_counts": {
+            "train": _class_counts(train, target),
+            "validation": _class_counts(validation, target),
+        },
+        "id_sha256": {
+            "train": _id_digest(train),
+            "validation": _id_digest(validation),
+        },
+        "official_test_access": "features_only_for_overlap_removal",
+    }
+    return PreparedDevelopmentSplits(
+        train=train,
+        validation=validation,
+        report=report,
+    )
 
 
 def parse_args() -> argparse.Namespace:

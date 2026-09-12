@@ -21,7 +21,9 @@ Development status, decisions, and the staged roadmap are maintained in
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
-Implementation has not started yet.
+Phase 1 framework-independent contracts are implemented. The final SHAP gate
+must still run against the two original local artifacts; see
+[`docs/shap-compatibility-gate.md`](docs/shap-compatibility-gate.md).
 
 ## Current v2.0 capabilities
 

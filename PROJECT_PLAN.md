@@ -53,7 +53,7 @@ or representative of modern traffic.
 | Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
 | Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
-| Next milestone | Implement Phase 1 contracts and complete the explainability technical gate |
+| Next milestone | Run the selected-artifact SHAP gate on Arun's Mac and close Phase 1 |
 
 ## Release roadmap
 
@@ -109,7 +109,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Design complete; implementation not started**
+Status: **Phase 1 in progress**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -120,8 +120,9 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Define model-loading trust boundaries and a dashboard threat model.
 - [x] Define score, false-positive, timestamp, and explanation terminology.
 - [x] Define phased implementation and release acceptance criteria.
-- [ ] Phase 1: implement framework-independent input and evidence contracts.
-- [ ] Phase 1: implement trusted-model-pack schema and preflight.
+- [x] Phase 1: implement framework-independent input and evidence contracts.
+- [x] Phase 1: implement trusted-model-pack schema and preflight.
+- [x] Phase 1: pass representative binary and multiclass SHAP integration tests.
 - [ ] Phase 1: complete the pinned SHAP compatibility/correctness/performance spike.
 - [ ] Phase 2: implement the evidence-first Streamlit pages.
 - [ ] Phase 3: implement trusted local inference, review, and safe export.
@@ -181,6 +182,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-12 | Build v2.1 as an evidence-first local analyst workbench with a separate opt-in trusted inference mode. | Gives reviewers value from a clean clone while preventing model uploads and keeping executable local artifacts outside the default path; see ADR 0002. |
 | 2026-09-12 | Use `model score (uncalibrated)`, review queue bands, and record sequence unless real timestamps are supplied. | v2.0 did not establish calibration or operational risk, and the prepared schema has no event timestamp or network identity fields. |
 | 2026-09-12 | Put SHAP behind a pinned technical gate and keep official-test data out of explanation backgrounds and threshold experiments. | Avoids claiming unsupported explanations and preserves the frozen v2.0 test boundary. |
+| 2026-09-12 | Pin the Phase 1 explanation gate to SHAP `0.52.0`, raw model output, a deterministic 256-row development background, ten explained rows, and explicit correctness/resource bounds. | Representative binary and multiclass HGB checks pass on Python 3.12; approval remains pending against the original local selected artifacts. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -202,7 +204,7 @@ Before finishing:
 
 ## Next session
 
-1. Implement Phase 1 input and evidence contracts without importing Streamlit.
-2. Implement the trusted-model-pack manifest and pre-deserialization checks.
-3. Run the pinned SHAP spike for both selected Histogram Gradient Boosting models
-   and record the go/no-go decision before building explanation UI.
+1. Transfer and push the Phase 1 foundation commit.
+2. Run `docs/shap-compatibility-gate.md` against the two original local final
+   artifacts on Arun's Mac and return the generated JSON report.
+3. Record the SHAP go/no-go decision and close Phase 1 before starting Streamlit.

@@ -105,6 +105,39 @@ def _require_unique_columns(columns: pd.Index) -> None:
         raise SchemaValidationError(f"duplicate columns: {duplicates}")
 
 
+def validate_model_feature_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Validate and order a feature-only UNSW-NB15 model input frame."""
+    _require_unique_columns(frame.columns)
+    missing = sorted(set(FEATURE_COLUMNS) - set(frame.columns))
+    extra = sorted(set(frame.columns) - set(FEATURE_COLUMNS))
+    if missing or extra:
+        raise SchemaValidationError(
+            f"feature schema mismatch for {SCHEMA_VERSION}; "
+            f"missing={missing}, extra={extra}"
+        )
+
+    validated = frame.loc[:, FEATURE_COLUMNS].copy()
+    for column in CATEGORICAL_FEATURES:
+        if validated[column].isna().any():
+            raise SchemaValidationError(f"{column} contains null values")
+        validated[column] = validated[column].astype(str).str.strip()
+        if validated[column].eq("").any():
+            raise SchemaValidationError(f"{column} contains empty values")
+
+    try:
+        validated[list(NUMERIC_FEATURES)] = validated[list(NUMERIC_FEATURES)].apply(
+            pd.to_numeric, errors="raise"
+        )
+    except (TypeError, ValueError) as exc:
+        raise SchemaValidationError("numeric features contain non-numeric values") from exc
+    numeric = validated.loc[:, NUMERIC_FEATURES]
+    if numeric.isna().any().any():
+        raise SchemaValidationError("numeric features contain null values")
+    if numeric.isin([float("inf"), float("-inf")]).any().any():
+        raise SchemaValidationError("numeric features contain infinite values")
+    return validated
+
+
 def validate_prepared_frame(frame: pd.DataFrame) -> pd.DataFrame:
     """Validate, normalize, and order an official prepared CSV partition.
 
@@ -125,25 +158,9 @@ def validate_prepared_frame(frame: pd.DataFrame) -> pd.DataFrame:
     if validated[ID_COLUMN].duplicated().any():
         raise SchemaValidationError("id must be unique within each partition")
 
-    for column in CATEGORICAL_FEATURES:
-        if validated[column].isna().any():
-            raise SchemaValidationError(f"{column} contains null values")
-        validated[column] = validated[column].astype(str).str.strip()
-        if validated[column].eq("").any():
-            raise SchemaValidationError(f"{column} contains empty values")
-
-    try:
-        validated[list(NUMERIC_FEATURES)] = validated[list(NUMERIC_FEATURES)].apply(
-            pd.to_numeric, errors="raise"
-        )
-    except (TypeError, ValueError) as exc:
-        raise SchemaValidationError("numeric features contain non-numeric values") from exc
-
-    numeric = validated.loc[:, NUMERIC_FEATURES]
-    if numeric.isna().any().any():
-        raise SchemaValidationError("numeric features contain null values")
-    if numeric.isin([float("inf"), float("-inf")]).any().any():
-        raise SchemaValidationError("numeric features contain infinite values")
+    features = validate_model_feature_frame(validated.loc[:, FEATURE_COLUMNS])
+    for column in FEATURE_COLUMNS:
+        validated[column] = features[column]
 
     try:
         labels = pd.to_numeric(validated[BINARY_LABEL_COLUMN], errors="raise")
