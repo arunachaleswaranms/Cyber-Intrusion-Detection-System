@@ -2,6 +2,8 @@
 
 Status: **Completed once and frozen**
 
+Release: [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0)
+
 The guarded `unsw-nb15-final-evaluation-v1` protocol evaluated the two selected
 Histogram Gradient Boosting models on the immutable official UNSW-NB15 test
 partition once. The run started at `2026-09-12T08:39:12.491417+00:00` and
