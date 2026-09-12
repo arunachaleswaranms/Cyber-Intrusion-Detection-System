@@ -23,13 +23,16 @@ or representative of modern traffic.
 8. Preserve authorship as `Arunachaleswaran M S <arunachaleswaranms@gmail.com>`.
 9. Do not add AI tools as authors, committers, or co-authors.
 10. Update this file in the same change that completes or changes planned work.
+11. Do not rerun the completed v2.0 official test or tune v2.0 from its results.
+    Any new modeling study requires a new versioned experiment and evaluation
+    policy.
 
 ## Current state
 
 | Item | State |
 |---|---|
-| Active release | v2.0 |
-| Release status | v1.1 published on `main`; v2.0 implementation in progress |
+| Active release | v2.0 release closure |
+| Release status | v2.0 implementation and benchmark complete; `v2.0.0` tag pending |
 | v1.1 implementation commit | `516ca7099ef3fa5f1629e1ad8829573c5300a403` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
@@ -46,8 +49,10 @@ or representative of modern traffic.
 | Final evaluation protocol | Implemented as `unsw-nb15-final-evaluation-v1` |
 | Reproduction environment | Python 3.12 with exact dependencies in `requirements-reproduction.txt` |
 | Mac reproduction | Passed dataset, split, tests, winners, ranking, and bounded metric checks |
-| Official test state | Sealed; no v2.0 model evaluation performed |
-| Next milestone | Apply the protocol amendment, then run the official test once on Arun's Mac |
+| Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
+| Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
+| Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
+| Next milestone | Push the closure commit, confirm CI, and publish tag `v2.0.0` |
 
 ## Release roadmap
 
@@ -74,7 +79,7 @@ or generated model is committed.
 
 ### v2.0 — Modern ML baseline
 
-Status: **In progress**
+Status: **Complete; release tag pending**
 
 - [x] Write [a dataset decision record](docs/decisions/0001-v2-primary-dataset.md)
       comparing UNSW-NB15 and CICIDS2017.
@@ -94,8 +99,9 @@ Status: **In progress**
       serialization, and deterministic outputs.
 - [x] Pin and test a guarded one-time official-test protocol.
 - [x] Run the clean validation reproduction on Arun's Apple Silicon Mac.
-- [ ] Run the official-test evaluation once.
-- [ ] Document reproducible benchmark results and limitations.
+- [x] Run the official-test evaluation once.
+- [x] Preserve the exact result and completion evidence with SHA-256 checks.
+- [x] Document reproducible benchmark results, error analysis, and limitations.
 
 Exit criteria: another person can download the selected dataset, reproduce the
 reported experiment, and obtain comparable metrics without modifying source code.
@@ -160,6 +166,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-12 | Refit each selected model on cleaned train plus validation data, then evaluate both tasks in one recorded official-test run. | Uses all development data after selection while preventing further model choice based on test performance. |
 | 2026-09-12 | Require a matching clean validation reproduction, explicit confirmation phrase, and new output directory before final evaluation. | Reduces accidental test access and makes the final benchmark auditable. |
 | 2026-09-12 | Pin the final benchmark to Python 3.12 and an exact dependency lock, while permitting at most `0.005` absolute selected-metric variation across platforms. | The Apple Silicon rerun matched the pinned dataset, documented row counts, winners, and rankings; recorded deterministic split fingerprints; and had a largest metric difference of `0.003841`. Exact floating-point equality was not portable. This amendment was made while the official test remained sealed. |
+| 2026-09-12 | Freeze the single official-test run without test-driven retuning. | Binary macro F1 was `0.8663` with a `0.2689` false-positive rate; multiclass macro F1 was `0.5029`, exposing weak minority-family generalization. Honest held-out results and limitations provide more research and portfolio value than optimizing against the test partition. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -181,6 +188,6 @@ Before finishing:
 
 ## Next session
 
-1. Apply and push the cross-platform reproduction amendment.
-2. Confirm the preserved Mac reproduction passes the amended guard.
-3. Run the final test once, preserve its JSON report, document results and error analysis, then close v2.0.
+1. Apply and push the v2.0 closure commit.
+2. Confirm both GitHub Actions jobs pass.
+3. Create and push annotated tag `v2.0.0`, then begin v2.1 only as a separate milestone.

@@ -1,0 +1,25 @@
+{
+  "completed_at_utc": "2026-09-12T08:39:38.040864+00:00",
+  "dataset_files": {
+    "test": {
+      "filename": "UNSW_NB15_testing-set.csv",
+      "records": 82332,
+      "sha256": "734fe6642edf758f7c94d7d9149426b49d202fe8e7bf0bef47392489c3c0a559",
+      "size_bytes": 15380800
+    },
+    "train": {
+      "filename": "UNSW_NB15_training-set.csv",
+      "records": 175341,
+      "sha256": "bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa",
+      "size_bytes": 32293018
+    }
+  },
+  "experiment_config_sha256": "070c009c139f41bcf34d63c7a5fa1324c819ded7a5884b800cc1bdbfb34234d2",
+  "final_protocol_sha256": "c4fc000d24d27cada9740c1350c3b1e22d710cbd537353f33c9036a980ccb517",
+  "model_selection_sha256": "c00c668f4032c9630802200add755359a6bf639c6be41471ab286a3b2299d027",
+  "official_test_status": "evaluated_once",
+  "reproduction_selection_sha256": "90439d175f9be42c776673ffd35c3dff41bec35fbd419f4b5be3ce88c44bdc50",
+  "results": "official_test_results.json",
+  "started_at_utc": "2026-09-12T08:39:12.491417+00:00",
+  "status": "completed"
+}

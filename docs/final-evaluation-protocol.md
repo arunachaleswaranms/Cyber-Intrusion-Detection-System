@@ -5,7 +5,7 @@ Protocol: `unsw-nb15-final-evaluation-v1`
 Canonical protocol SHA-256:
 `c4fc000d24d27cada9740c1350c3b1e22d710cbd537353f33c9036a980ccb517`
 
-Status: **Implemented and tested; official test still sealed**
+Status: **Completed once on 2026-09-12; do not rerun**
 
 ## Purpose
 
@@ -13,7 +13,7 @@ This protocol prevents the official UNSW-NB15 test partition from becoming an
 iterative tuning dataset. The selected model names, parameters, preprocessing,
 training scope, and test procedure are pinned before final metrics are observed.
 
-The final run will:
+The final run performed these steps:
 
 1. Verify the official CSV files against the committed manifest.
 2. Verify a clean validation reproduction against the recorded selection.
@@ -100,9 +100,10 @@ absolute tolerance of `0.005`. See
 [`model-selection.md`](model-selection.md) for the recorded Apple Silicon
 reproduction and its split fingerprints.
 
-## Step 2: explicit one-time final run
+## Step 2: recorded one-time final run
 
-Only after Step 1 succeeds, use a new final-output directory:
+The following invocation was executed once after Step 1 succeeded. It is
+preserved as provenance and must not be run again for v2.0:
 
 ```bash
 FINAL_DIR="artifacts/v2/official-test-v1"
@@ -114,6 +115,11 @@ PYTHONPATH=src python -m cids.experiments.evaluate_official_test \
   --confirm EVALUATE_OFFICIAL_TEST_ONCE
 ```
 
-Do not rerun or tune after seeing these results. Preserve
-`official_test_results.json` for the final v2.0 documentation commit. Generated
+Do not rerun or tune after seeing these results. The original
+`official_test_results.json` is preserved as repository evidence. Generated
 `.joblib` artifacts remain local and must not be committed.
+
+The completed run state and unmodified machine-readable result are preserved in
+[`results/v2.0`](../results/v2.0). See
+[`v2-official-test-results.md`](v2-official-test-results.md) for the benchmark
+summary, limitations, and error analysis.

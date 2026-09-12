@@ -16,7 +16,7 @@ Development status, decisions, and the staged roadmap are maintained in
 |---|---|---|---|
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
-| v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | In progress |
+| v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Benchmark complete; tag pending |
 
 ## Current v2.0 capabilities
 
@@ -29,20 +29,27 @@ Development status, decisions, and the staged roadmap are maintained in
 - Trains seeded Random Forest and histogram gradient-boosting baselines.
 - Trains an Isolation Forest reference using only known-normal training rows.
 - Enforces one versioned configuration for parameters and model selection.
-- Selects models using validation data only; the official test remains sealed.
+- Selects models using validation data only and records one guarded official-test
+  evaluation without test-driven retuning.
 - Reports macro/weighted precision, recall and F1, false-positive and
   false-negative rates, ROC-AUC, PR-AUC, per-family detection rate, confusion
   matrices, and prediction latency.
 - Persists trusted local model artifacts and machine-readable experiment results.
 
-See [`docs/supervised-baselines.md`](docs/supervised-baselines.md),
+See [`docs/v2-official-test-results.md`](docs/v2-official-test-results.md),
+[`docs/supervised-baselines.md`](docs/supervised-baselines.md),
 [`docs/anomaly-baseline.md`](docs/anomaly-baseline.md), and
-[`docs/model-selection.md`](docs/model-selection.md) for methodology and current
-validation results.
+[`docs/model-selection.md`](docs/model-selection.md) for the final benchmark,
+methodology, and validation results.
 
-The selected models are now frozen. The guarded final procedure is documented in
-[`docs/final-evaluation-protocol.md`](docs/final-evaluation-protocol.md). The
-official test has not yet been evaluated.
+The selected models and official-test results are now frozen. The guarded
+procedure, executed once on 2026-09-12, is documented in
+[`docs/final-evaluation-protocol.md`](docs/final-evaluation-protocol.md).
+
+| Official-test task | Model | Macro F1 | Balanced accuracy | Key limitation |
+|---|---|---:|---:|---|
+| Binary attack detection | Histogram Gradient Boosting | 0.8663 | 0.8595 | 26.89% false-positive rate |
+| Attack-family classification | Histogram Gradient Boosting | 0.5029 | 0.5761 | Weak Analysis, Backdoor, and DoS recall |
 
 ## Repository structure
 
@@ -52,6 +59,7 @@ official test has not yet been evaluated.
 ├── configs/                     # Frozen v2.0 experiment and selection records
 ├── docs/                        # Decisions, schemas, policies, and results
 ├── notebooks/                   # Original exploratory notebooks
+├── results/v2.0/                # Frozen official-test JSON evidence and hashes
 ├── src/
 │   ├── cids/                    # Versioned v2.0 package
 │   │   ├── datasets/
@@ -62,6 +70,7 @@ official test has not yet been evaluated.
 │   └── model_evaluation.py
 ├── tests/
 ├── .github/workflows/test.yml
+├── requirements-reproduction.txt
 ├── requirements.txt
 └── requirements-dev.txt
 ```

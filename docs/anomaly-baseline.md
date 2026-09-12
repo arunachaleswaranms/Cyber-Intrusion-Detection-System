@@ -14,7 +14,8 @@ learning attack labels?
   more anomalous.
 - Threshold: the 95th percentile of normal-training anomaly scores, selected
   before validation evaluation.
-- Evaluation: binary validation partition only; the official test remains sealed.
+- Evaluation: binary validation partition only; the official test remained
+  sealed during anomaly-model development and selection.
 
 The threshold targets an approximate 5% alert rate on known-normal training data.
 It is not tuned using validation labels.

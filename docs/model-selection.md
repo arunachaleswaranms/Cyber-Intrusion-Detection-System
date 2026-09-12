@@ -77,6 +77,8 @@ was documented before the official test was opened.
 
 ## Official-test state
 
-The official test partition is still sealed. Selection does not contain official
-test metrics. A separate one-time final evaluation may occur only after the
-selection record is committed and a clean reproduction check passes.
+The official test partition remained sealed throughout model selection, and the
+selection record contains no official-test metrics. After the selection was
+committed and reproduced, the separate guarded evaluation ran once on
+2026-09-12. Its frozen result is documented in
+[`v2-official-test-results.md`](v2-official-test-results.md).
