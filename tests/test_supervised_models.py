@@ -69,7 +69,7 @@ def make_splits(task="binary"):
             row(3, 103, "exploits", 1),
         ]
     )
-    return prepare_splits(training, testing, task, validation_fraction=0.25)
+    return prepare_splits(training, testing, task, validation_fraction=0.20)
 
 
 @pytest.mark.parametrize("model_name", SUPPORTED_MODELS)
@@ -106,8 +106,8 @@ def test_model_artifact_round_trip_preserves_predictions(tmp_path):
 def test_seeded_training_is_deterministic(model_name):
     splits = make_splits()
 
-    first = train_and_validate(splits, model_name, seed=42)
-    second = train_and_validate(splits, model_name, seed=42)
+    first = train_and_validate(splits, model_name)
+    second = train_and_validate(splits, model_name)
 
     np.testing.assert_array_equal(
         predict(first.artifact, splits.validation),

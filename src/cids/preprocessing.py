@@ -18,7 +18,9 @@ from cids.datasets.split_unsw_nb15 import PreparedSplits
 from cids.datasets.unsw_nb15 import (
     CATEGORICAL_FEATURES,
     FEATURE_COLUMNS,
+    ID_COLUMN,
     NUMERIC_FEATURES,
+    REQUIRED_COLUMNS,
     SCHEMA_VERSION,
     validate_prepared_frame,
 )
@@ -62,21 +64,63 @@ def _names_digest(names: list[str]) -> str:
     return hashlib.sha256("\n".join(names).encode()).hexdigest()
 
 
-def fit_preprocessor(splits: PreparedSplits) -> PreprocessingArtifact:
-    """Fit categorical vocabulary exclusively from a prepared training split."""
+def _id_digest(frame: pd.DataFrame) -> str:
+    values = "\n".join(str(value) for value in frame[ID_COLUMN]).encode()
+    return hashlib.sha256(values).hexdigest()
+
+
+def _validate_training_subset(
+    source_training: pd.DataFrame, candidate: pd.DataFrame
+) -> pd.DataFrame:
+    source_ids = set(source_training[ID_COLUMN])
+    if not set(candidate[ID_COLUMN]).issubset(source_ids):
+        raise PreprocessingArtifactError(
+            "preprocessor training subset contains IDs outside prepared training"
+        )
+    source_by_id = source_training.set_index(ID_COLUMN, drop=False)
+    expected = source_by_id.loc[candidate[ID_COLUMN]].reset_index(drop=True)
+    if not expected.loc[:, REQUIRED_COLUMNS].equals(
+        candidate.loc[:, REQUIRED_COLUMNS].reset_index(drop=True)
+    ):
+        raise PreprocessingArtifactError(
+            "preprocessor training subset does not match prepared training rows"
+        )
+    return candidate.reset_index(drop=True)
+
+
+def fit_preprocessor(
+    splits: PreparedSplits,
+    *,
+    training_frame: pd.DataFrame | None = None,
+    training_scope: str = "prepared_train",
+) -> PreprocessingArtifact:
+    """Fit vocabulary on all or a verified subset of prepared training data."""
     report = splits.report
     required_report_keys = {"task", "split_policy_version", "id_sha256"}
     if not required_report_keys.issubset(report):
         raise PreprocessingArtifactError("prepared split report is incomplete")
 
-    training = validate_prepared_frame(splits.train)
+    source_training = validate_prepared_frame(splits.train)
     expected_digest = report["id_sha256"].get("train")
-    actual_ids = "\n".join(str(value) for value in training["id"]).encode()
-    actual_digest = hashlib.sha256(actual_ids).hexdigest()
-    if actual_digest != expected_digest:
+    source_digest = _id_digest(source_training)
+    if source_digest != expected_digest:
         raise PreprocessingArtifactError(
             "training IDs do not match the prepared split report"
         )
+    if training_frame is None:
+        if training_scope != "prepared_train":
+            raise PreprocessingArtifactError(
+                "custom training_scope requires an explicit training subset"
+            )
+        training = source_training
+    else:
+        if not training_scope or training_scope == "prepared_train":
+            raise PreprocessingArtifactError(
+                "training subset requires a distinct non-empty training_scope"
+            )
+        candidate = validate_prepared_frame(training_frame)
+        training = _validate_training_subset(source_training, candidate)
+    actual_digest = _id_digest(training)
 
     transformer = _build_transformer()
     transformer.fit(training.loc[:, FEATURE_COLUMNS])
@@ -91,6 +135,9 @@ def fit_preprocessor(splits: PreparedSplits) -> PreprocessingArtifact:
         "schema_version": SCHEMA_VERSION,
         "task": report["task"],
         "split_policy_version": report["split_policy_version"],
+        "training_scope": training_scope,
+        "source_training_rows": len(source_training),
+        "source_training_id_sha256": source_digest,
         "training_rows": len(training),
         "training_id_sha256": actual_digest,
         "input_feature_count": len(FEATURE_COLUMNS),

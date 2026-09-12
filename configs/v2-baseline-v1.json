@@ -1,0 +1,101 @@
+{
+  "config_version": "unsw-nb15-experiment-v1",
+  "dataset": {
+    "manifest_version": 1,
+    "schema_version": "unsw-nb15-prepared-v1"
+  },
+  "split": {
+    "policy_version": "unsw-nb15-split-v1",
+    "seed": 42,
+    "validation_fraction": 0.2
+  },
+  "preprocessing": {
+    "version": "unsw-nb15-preprocessor-v1"
+  },
+  "models": {
+    "supervised": {
+      "random_forest": {
+        "class_weight": "balanced_subsample",
+        "max_features": "sqrt",
+        "min_samples_leaf": 2,
+        "n_estimators": 200,
+        "n_jobs": -1
+      },
+      "hist_gradient_boosting": {
+        "class_weight": "balanced",
+        "early_stopping": false,
+        "l2_regularization": 1.0,
+        "learning_rate": 0.1,
+        "max_iter": 150,
+        "max_leaf_nodes": 31
+      }
+    },
+    "anomaly": {
+      "name": "isolation_forest",
+      "parameters": {
+        "contamination": "auto",
+        "max_samples": "auto",
+        "n_estimators": 300,
+        "n_jobs": -1
+      },
+      "training_scope": "normal_only",
+      "threshold": {
+        "normal_training_quantile": 0.95,
+        "strategy": "normal_training_score_quantile"
+      }
+    }
+  },
+  "selection": {
+    "official_test_status": "sealed",
+    "partition": "validation",
+    "tasks": {
+      "binary": {
+        "candidate_models": [
+          "random_forest",
+          "hist_gradient_boosting",
+          "isolation_forest"
+        ],
+        "ranking": [
+          {
+            "direction": "maximize",
+            "metric": "f1_macro"
+          },
+          {
+            "direction": "maximize",
+            "metric": "balanced_accuracy"
+          },
+          {
+            "direction": "minimize",
+            "metric": "false_positive_rate"
+          }
+        ]
+      },
+      "multiclass": {
+        "candidate_models": [
+          "random_forest",
+          "hist_gradient_boosting"
+        ],
+        "ranking": [
+          {
+            "direction": "maximize",
+            "metric": "f1_macro"
+          },
+          {
+            "direction": "maximize",
+            "metric": "balanced_accuracy"
+          },
+          {
+            "direction": "minimize",
+            "metric": "false_positive_rate_macro"
+          }
+        ]
+      }
+    },
+    "unlock_official_test_after": [
+      "all candidate validation runs complete",
+      "selection rule applied",
+      "selected model names and artifact versions recorded",
+      "clean reproduction check passes"
+    ]
+  }
+}

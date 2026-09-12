@@ -140,3 +140,32 @@ def test_rejects_training_frame_not_matching_split_report():
 
     with pytest.raises(PreprocessingArtifactError, match="training IDs"):
         fit_preprocessor(splits)
+
+
+def test_fits_verified_training_subset_without_other_category_vocabulary():
+    splits = make_splits()
+    normal_training = splits.train.loc[splits.train[BINARY_LABEL_COLUMN].eq(0)]
+
+    artifact = fit_preprocessor(
+        splits,
+        training_frame=normal_training,
+        training_scope="normal_only",
+    )
+    encoder = artifact.transformer.named_transformers_["categorical"]
+
+    assert artifact.metadata["training_scope"] == "normal_only"
+    assert artifact.metadata["training_rows"] == len(normal_training)
+    assert set(encoder.categories_[1]) == set(normal_training["service"])
+
+
+def test_rejects_training_subset_row_outside_prepared_training():
+    splits = make_splits()
+    outsider = splits.train.iloc[[0]].copy()
+    outsider[ID_COLUMN] = 999
+
+    with pytest.raises(PreprocessingArtifactError, match="outside prepared training"):
+        fit_preprocessor(
+            splits,
+            training_frame=outsider,
+            training_scope="normal_only",
+        )

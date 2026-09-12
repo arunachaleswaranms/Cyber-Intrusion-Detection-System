@@ -67,9 +67,10 @@ PYTHONPATH=src python -m cids.experiments.train_supervised \
 
 ## Current validation snapshot
 
-This snapshot used the pinned files, split policy `unsw-nb15-split-v1`,
-preprocessor `unsw-nb15-preprocessor-v1`, validation fraction `0.20`, and seed
-`42`.
+This snapshot used frozen configuration `unsw-nb15-experiment-v1` with canonical
+SHA-256 `070c009c139f41bcf34d63c7a5fa1324c819ded7a5884b800cc1bdbfb34234d2`,
+the pinned files, split policy `unsw-nb15-split-v1`, preprocessor
+`unsw-nb15-preprocessor-v1`, validation fraction `0.20`, and seed `42`.
 
 | Task | Model | Balanced accuracy | Macro F1 | Weighted F1 | ROC-AUC | PR-AUC |
 |---|---|---:|---:|---:|---:|---:|
@@ -86,8 +87,6 @@ to accuracy alone.
 
 ## Remaining work before final evaluation
 
-- Add the training-only anomaly-detection baseline.
-- Freeze experiment configuration and the model-selection rule.
-- Reproduce the validation results from clean setup instructions.
+- Reproduce the frozen validation results from a clean environment.
 - Evaluate the selected frozen models once on the official test partition.
 - Document final results, limitations, and error analysis.

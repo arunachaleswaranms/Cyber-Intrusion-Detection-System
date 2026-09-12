@@ -14,8 +14,13 @@ from scipy import sparse
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.utils.validation import check_is_fitted
 
+from cids.config import (
+    config_sha256,
+    load_experiment_config,
+    validate_experiment_config,
+    validate_split_report,
+)
 from cids.datasets.split_unsw_nb15 import (
-    DEFAULT_RANDOM_SEED,
     PreparedSplits,
     target_for_task,
 )
@@ -58,26 +63,12 @@ class TrainingResult:
     validation_metrics: dict
 
 
-def _build_estimator(model_name: ModelName, seed: int):
+def _build_estimator(model_name: ModelName, parameters: dict, seed: int):
+    effective_parameters = {**parameters, "random_state": seed}
     if model_name == "random_forest":
-        return RandomForestClassifier(
-            n_estimators=200,
-            min_samples_leaf=2,
-            max_features="sqrt",
-            class_weight="balanced_subsample",
-            n_jobs=-1,
-            random_state=seed,
-        )
+        return RandomForestClassifier(**effective_parameters)
     if model_name == "hist_gradient_boosting":
-        return HistGradientBoostingClassifier(
-            learning_rate=0.1,
-            max_iter=150,
-            max_leaf_nodes=31,
-            l2_regularization=1.0,
-            class_weight="balanced",
-            early_stopping=False,
-            random_state=seed,
-        )
+        return HistGradientBoostingClassifier(**effective_parameters)
     raise ModelArtifactError(f"unsupported model: {model_name!r}")
 
 
@@ -95,7 +86,7 @@ def train_and_validate(
     splits: PreparedSplits,
     model_name: ModelName,
     *,
-    seed: int = DEFAULT_RANDOM_SEED,
+    config: dict | None = None,
 ) -> TrainingResult:
     """Fit on prepared training data and score only prepared validation data.
 
@@ -103,6 +94,13 @@ def train_and_validate(
     """
     if model_name not in SUPPORTED_MODELS:
         raise ModelArtifactError(f"unsupported model: {model_name!r}")
+    experiment_config = (
+        load_experiment_config()
+        if config is None
+        else validate_experiment_config(config)
+    )
+    validate_split_report(experiment_config, splits.report)
+    seed = experiment_config["split"]["seed"]
     task = splits.report.get("task")
     target_column = target_for_task(task)
     preprocessor = fit_preprocessor(splits)
@@ -115,7 +113,11 @@ def train_and_validate(
     training_target = splits.train[target_column]
     validation_target = splits.validation[target_column]
 
-    estimator = _build_estimator(model_name, seed)
+    estimator = _build_estimator(
+        model_name,
+        experiment_config["models"]["supervised"][model_name],
+        seed,
+    )
     started = perf_counter()
     estimator.fit(training_features, training_target)
     fit_seconds = perf_counter() - started
@@ -128,6 +130,8 @@ def train_and_validate(
     )
     metadata = {
         "artifact_version": MODEL_ARTIFACT_VERSION,
+        "experiment_config_version": experiment_config["config_version"],
+        "experiment_config_sha256": config_sha256(experiment_config),
         "schema_version": SCHEMA_VERSION,
         "split_policy_version": splits.report["split_policy_version"],
         "task": task,

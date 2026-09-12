@@ -82,12 +82,8 @@ def _per_class_metrics(target, predictions, classes) -> dict[str, dict[str, floa
     }
 
 
-def _binary_metrics(target, predictions, probabilities, classes) -> dict:
-    if 1 not in classes:
-        raise EvaluationError("binary classifier does not expose attack class 1")
-    positive_index = list(classes).index(1)
+def _binary_metrics(target, predictions, positive_scores) -> dict:
     tn, fp, fn, tp = confusion_matrix(target, predictions, labels=[0, 1]).ravel()
-    positive_scores = probabilities[:, positive_index]
     precision, recall, f1, _ = precision_recall_fscore_support(
         target,
         predictions,
@@ -104,6 +100,60 @@ def _binary_metrics(target, predictions, probabilities, classes) -> dict:
         "roc_auc": float(roc_auc_score(target, positive_scores)),
         "pr_auc": float(average_precision_score(target, positive_scores)),
     }
+
+
+def evaluate_binary_detector(
+    predictions,
+    positive_scores,
+    target,
+    *,
+    family_labels: pd.Series,
+    prediction_seconds: float,
+) -> dict:
+    """Evaluate fixed binary predictions and higher-is-more-malicious scores."""
+    target_array = np.asarray(target)
+    prediction_array = np.asarray(predictions)
+    score_array = np.asarray(positive_scores)
+    samples = len(target_array)
+    if samples == 0:
+        raise EvaluationError("validation partition must not be empty")
+    if (
+        prediction_array.shape != target_array.shape
+        or score_array.shape != target_array.shape
+    ):
+        raise EvaluationError("binary predictions and scores must align with targets")
+    if not set(np.unique(target_array)).issubset({0, 1}):
+        raise EvaluationError("binary targets must contain only 0 and 1")
+    if not set(np.unique(prediction_array)).issubset({0, 1}):
+        raise EvaluationError("binary predictions must contain only 0 and 1")
+
+    classes = np.array([0, 1])
+    per_class = _per_class_metrics(target_array, prediction_array, classes)
+    results = {
+        "samples": samples,
+        "prediction_seconds": float(prediction_seconds),
+        "prediction_ms_per_record": float(prediction_seconds * 1000 / samples),
+        "accuracy": float(accuracy_score(target_array, prediction_array)),
+        "balanced_accuracy": float(
+            balanced_accuracy_score(target_array, prediction_array)
+        ),
+        **_averaged_metrics(target_array, prediction_array, "macro"),
+        **_averaged_metrics(target_array, prediction_array, "weighted"),
+        "labels": [0, 1],
+        "confusion_matrix": confusion_matrix(
+            target_array, prediction_array, labels=classes
+        ).tolist(),
+        "per_class": per_class,
+        **_binary_metrics(target_array, prediction_array, score_array),
+    }
+    results["per_family_detection_rate"] = _family_detection_rates(
+        "binary",
+        target_array,
+        prediction_array,
+        family_labels,
+        per_class,
+    )
+    return results
 
 
 def _multiclass_metrics(target, predictions, probabilities, classes) -> dict:
@@ -195,6 +245,18 @@ def evaluate_classifier(
         raise EvaluationError("predict_proba returned an incompatible shape")
 
     class_values = [_python_value(value) for value in classes]
+    if task == "binary":
+        if 1 not in class_values:
+            raise EvaluationError("binary classifier does not expose attack class 1")
+        positive_index = class_values.index(1)
+        return evaluate_binary_detector(
+            predictions,
+            probabilities[:, positive_index],
+            target_array,
+            family_labels=family_labels,
+            prediction_seconds=timing["prediction_seconds"],
+        )
+
     per_class = _per_class_metrics(target_array, predictions, classes)
     results = {
         **timing,
@@ -210,14 +272,9 @@ def evaluate_classifier(
         ).tolist(),
         "per_class": per_class,
     }
-    if task == "binary":
-        results.update(
-            _binary_metrics(target_array, predictions, probabilities, class_values)
-        )
-    else:
-        results.update(
-            _multiclass_metrics(target_array, predictions, probabilities, classes)
-        )
+    results.update(
+        _multiclass_metrics(target_array, predictions, probabilities, classes)
+    )
     results["per_family_detection_rate"] = _family_detection_rates(
         task,
         target_array,

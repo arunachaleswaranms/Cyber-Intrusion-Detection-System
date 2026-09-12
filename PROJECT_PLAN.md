@@ -39,8 +39,12 @@ or representative of modern traffic.
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
 | Preprocessing | Versioned train-only pipeline with provenance metadata |
 | v2.0 supervised models | Random Forest and Histogram Gradient Boosting validated |
+| v2.0 anomaly model | Normal-only Isolation Forest validated; reference baseline only |
+| Frozen experiment | `unsw-nb15-experiment-v1` |
+| Selected binary model | Histogram Gradient Boosting |
+| Selected multiclass model | Histogram Gradient Boosting |
 | Official test state | Sealed; no v2.0 model evaluation performed |
-| Next milestone | Add anomaly baseline and freeze experiment configuration |
+| Next milestone | Clean reproduction check, then one-time official-test evaluation |
 
 ## Release roadmap
 
@@ -76,13 +80,13 @@ Status: **In progress**
 - [x] Add a dataset manifest and local-file integrity validation.
 - [x] Add deterministic train/validation/test splits with duplicate safeguards.
 - [x] Build a versioned preprocessing and feature-schema pipeline.
-- [ ] Compare a small model set:
+- [x] Compare a small model set:
   - [x] Random Forest and Histogram Gradient Boosting supervised baselines.
-  - [ ] One training-only anomaly-detection baseline.
+  - [x] One normal-only Isolation Forest anomaly-detection baseline.
 - [x] Add precision, recall, macro/weighted F1, false-positive rate,
       false-negative rate, PR-AUC, ROC-AUC where applicable, per-family detection
       rate, and inference latency for supervised models.
-- [ ] Add configuration files for experiments and persist result metadata.
+- [x] Add configuration files for experiments and persist result metadata.
 - [x] Add tests covering schema validation, leakage prevention, label mapping,
       serialization, and deterministic outputs.
 - [ ] Document reproducible benchmark results and limitations.
@@ -144,6 +148,9 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Preserve numerical units and fit one-hot categorical vocabularies only on the prepared training split. | Matches the planned tree models, improves explanation readability, and prevents category leakage. |
 | 2026-09-05 | Use Random Forest and scikit-learn Histogram Gradient Boosting for the first supervised comparison. | Provides bagged and boosted tree baselines without adding a native external dependency; XGBoost or LightGBM can be reconsidered only if controlled validation justifies it. |
 | 2026-09-05 | Select supervised models only from validation metrics and keep the official test sealed until configuration is frozen. | Prevents test-driven model choice and preserves an honest final holdout. |
+| 2026-09-05 | Train Isolation Forest and its preprocessor only on normal training rows, using the 95th percentile of normal-training anomaly scores as a fixed threshold. | Creates a label-free attack reference without learning attack categories or tuning the threshold on validation labels. |
+| 2026-09-05 | Rank candidates by macro F1, then balanced accuracy, then false-positive rate. | Prioritizes performance across minority attack families instead of allowing common classes to dominate selection. |
+| 2026-09-05 | Select Histogram Gradient Boosting for both final supervised tasks. | It ranks first under the frozen validation-only rule; the official test was not used. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -165,6 +172,6 @@ Before finishing:
 
 ## Next session
 
-1. Implement a training-only anomaly-detection baseline with comparable metrics.
-2. Add versioned experiment configuration and freeze the selection rule.
-3. Reproduce all validation runs before unlocking the official test once.
+1. Reproduce the frozen validation workflow from a clean environment.
+2. Add a one-time official-test evaluation command that accepts only the recorded selected models.
+3. Run the final test once, document results and error analysis, then close v2.0.

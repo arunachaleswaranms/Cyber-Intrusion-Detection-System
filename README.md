@@ -27,20 +27,25 @@ Development status, decisions, and the staged roadmap are maintained in
   from training before deterministic validation splitting.
 - Fits numerical/categorical preprocessing only on the cleaned training split.
 - Trains seeded Random Forest and histogram gradient-boosting baselines.
+- Trains an Isolation Forest reference using only known-normal training rows.
+- Enforces one versioned configuration for parameters and model selection.
 - Selects models using validation data only; the official test remains sealed.
 - Reports macro/weighted precision, recall and F1, false-positive and
   false-negative rates, ROC-AUC, PR-AUC, per-family detection rate, confusion
   matrices, and prediction latency.
 - Persists trusted local model artifacts and machine-readable experiment results.
 
-See [`docs/supervised-baselines.md`](docs/supervised-baselines.md) for the
-methodology and current validation snapshot.
+See [`docs/supervised-baselines.md`](docs/supervised-baselines.md),
+[`docs/anomaly-baseline.md`](docs/anomaly-baseline.md), and
+[`docs/model-selection.md`](docs/model-selection.md) for methodology and current
+validation results.
 
 ## Repository structure
 
 ```text
 .
 ├── dataset/                     # Dataset manifests and download instructions
+├── configs/                     # Frozen v2.0 experiment and selection records
 ├── docs/                        # Decisions, schemas, policies, and results
 ├── notebooks/                   # Original exploratory notebooks
 ├── src/
@@ -99,6 +104,24 @@ PYTHONPATH=src python -m cids.experiments.train_supervised \
 Each run creates two trusted local `.joblib` model artifacts and a
 `validation_results.json` report. Generated artifacts and datasets are ignored by
 Git. Joblib is pickle-based, so never load artifacts from untrusted sources.
+
+Run the normal-only anomaly baseline:
+
+```bash
+PYTHONPATH=src python -m cids.experiments.train_anomaly \
+  --data-dir dataset/unsw-nb15/raw \
+  --output-dir artifacts/v2/anomaly
+```
+
+Apply the frozen selection rule after all three validation runs:
+
+```bash
+PYTHONPATH=src python -m cids.experiments.select_models \
+  --binary-supervised-report artifacts/v2/binary/validation_results.json \
+  --multiclass-supervised-report artifacts/v2/multiclass/validation_results.json \
+  --anomaly-report artifacts/v2/anomaly/validation_results.json \
+  --output artifacts/v2/model-selection.json
+```
 
 ## Run the v1.1 historical baseline
 

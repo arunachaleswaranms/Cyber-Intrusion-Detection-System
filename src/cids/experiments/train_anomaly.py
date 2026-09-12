@@ -1,4 +1,4 @@
-"""Train v2.0 supervised baselines without evaluating the official test set."""
+"""Train the v2.0 normal-only anomaly baseline without opening official test."""
 
 from __future__ import annotations
 
@@ -15,28 +15,15 @@ from cids.config import (
 )
 from cids.datasets.split_unsw_nb15 import prepare_splits
 from cids.datasets.verify_manifest import DEFAULT_MANIFEST, verify_dataset
-from cids.modeling.supervised import (
-    SUPPORTED_MODELS,
-    save_artifact,
-    train_and_validate,
-)
+from cids.modeling.anomaly import save_artifact, train_and_validate_anomaly
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", required=True, type=Path)
-    parser.add_argument("--task", required=True, choices=("binary", "multiclass"))
-    parser.add_argument(
-        "--models",
-        nargs="+",
-        choices=SUPPORTED_MODELS,
-        default=list(SUPPORTED_MODELS),
-    )
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument(
-        "--config", type=Path, default=DEFAULT_EXPERIMENT_CONFIG
-    )
+    parser.add_argument("--config", type=Path, default=DEFAULT_EXPERIMENT_CONFIG)
     return parser.parse_args()
 
 
@@ -49,47 +36,43 @@ def main() -> int:
     splits = prepare_splits(
         official_train,
         official_test,
-        task=args.task,
+        task="binary",
         validation_fraction=config["split"]["validation_fraction"],
         seed=config["split"]["seed"],
     )
+    result = train_and_validate_anomaly(splits, config=config)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    models: dict[str, dict] = {}
-    for model_name in args.models:
-        result = train_and_validate(splits, model_name, config=config)
-        artifact_path = save_artifact(
-            result.artifact,
-            args.output_dir / f"{model_name}.joblib",
-        )
-        models[model_name] = {
-            "artifact": artifact_path.name,
-            "metadata": result.artifact.metadata,
-            "validation_metrics": result.validation_metrics,
-        }
-
+    artifact_path = save_artifact(
+        result.artifact,
+        args.output_dir / "isolation_forest.joblib",
+    )
     report = {
-        "task": args.task,
+        "task": "binary",
         "experiment_config_version": config["config_version"],
         "experiment_config_sha256": config_sha256(config),
         "selection_partition": "validation",
         "official_test_status": "sealed_not_evaluated",
         "split_report": splits.report,
-        "models": models,
+        "model": {
+            "artifact": artifact_path.name,
+            "metadata": result.artifact.metadata,
+            "validation_metrics": result.validation_metrics,
+        },
     }
     report_path = args.output_dir / "validation_results.json"
     report_path.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    metrics = result.validation_metrics
     print(f"Wrote validation results: {report_path}")
-    for model_name, result in models.items():
-        metrics = result["validation_metrics"]
-        print(
-            f"{model_name}: macro_f1={metrics['f1_macro']:.4f}, "
-            f"weighted_f1={metrics['f1_weighted']:.4f}, "
-            f"latency_ms_per_record={metrics['prediction_ms_per_record']:.6f}"
-        )
+    print(
+        f"isolation_forest: macro_f1={metrics['f1_macro']:.4f}, "
+        f"balanced_accuracy={metrics['balanced_accuracy']:.4f}, "
+        f"fpr={metrics['false_positive_rate']:.4f}, "
+        f"fnr={metrics['false_negative_rate']:.4f}"
+    )
     print("Official test status: sealed_not_evaluated")
     return 0
 
