@@ -40,6 +40,10 @@ See [`docs/supervised-baselines.md`](docs/supervised-baselines.md),
 [`docs/model-selection.md`](docs/model-selection.md) for methodology and current
 validation results.
 
+The selected models are now frozen. The guarded final procedure is documented in
+[`docs/final-evaluation-protocol.md`](docs/final-evaluation-protocol.md). The
+official test has not yet been evaluated.
+
 ## Repository structure
 
 ```text

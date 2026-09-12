@@ -63,7 +63,7 @@ class TrainingResult:
     validation_metrics: dict
 
 
-def _build_estimator(model_name: ModelName, parameters: dict, seed: int):
+def build_estimator(model_name: ModelName, parameters: dict, seed: int):
     effective_parameters = {**parameters, "random_state": seed}
     if model_name == "random_forest":
         return RandomForestClassifier(**effective_parameters)
@@ -76,7 +76,7 @@ def _requires_dense(model_name: str) -> bool:
     return model_name == "hist_gradient_boosting"
 
 
-def _model_features(model_name: str, matrix):
+def model_features_for_estimator(model_name: str, matrix):
     if _requires_dense(model_name):
         return matrix.toarray() if sparse.issparse(matrix) else np.asarray(matrix)
     return matrix
@@ -104,16 +104,16 @@ def train_and_validate(
     task = splits.report.get("task")
     target_column = target_for_task(task)
     preprocessor = fit_preprocessor(splits)
-    training_features = _model_features(
+    training_features = model_features_for_estimator(
         model_name, transform_partition(preprocessor, splits.train)
     )
-    validation_features = _model_features(
+    validation_features = model_features_for_estimator(
         model_name, transform_partition(preprocessor, splits.validation)
     )
     training_target = splits.train[target_column]
     validation_target = splits.validation[target_column]
 
-    estimator = _build_estimator(
+    estimator = build_estimator(
         model_name,
         experiment_config["models"]["supervised"][model_name],
         seed,
@@ -194,7 +194,9 @@ def predict(artifact: SupervisedModelArtifact, frame) -> np.ndarray:
     validate_artifact(artifact)
     features = transform_partition(artifact.preprocessor, frame)
     return np.asarray(
-        artifact.estimator.predict(_model_features(artifact.model_name, features))
+        artifact.estimator.predict(
+            model_features_for_estimator(artifact.model_name, features)
+        )
     )
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -128,3 +129,9 @@ def load_model_selection(
         raise ModelSelectionError(f"invalid model selection JSON: {selection_path}") from exc
     experiment_config = load_experiment_config() if config is None else config
     return validate_model_selection(selection, experiment_config)
+
+
+def selection_sha256(selection: dict, config: dict) -> str:
+    validate_model_selection(selection, config)
+    canonical = json.dumps(selection, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(canonical).hexdigest()

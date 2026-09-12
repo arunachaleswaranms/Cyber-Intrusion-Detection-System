@@ -1,0 +1,22 @@
+{
+  "protocol_version": "unsw-nb15-final-evaluation-v1",
+  "experiment_config_sha256": "070c009c139f41bcf34d63c7a5fa1324c819ded7a5884b800cc1bdbfb34234d2",
+  "model_selection_sha256": "c00c668f4032c9630802200add755359a6bf639c6be41471ab286a3b2299d027",
+  "final_training": {
+    "partition": "prepared_train_plus_validation",
+    "preprocessing": "refit_on_combined_development",
+    "estimator": "fresh_selected_model"
+  },
+  "official_test": {
+    "partition": "immutable_official_test",
+    "evaluation_runs": 1,
+    "tasks": {
+      "binary": "hist_gradient_boosting",
+      "multiclass": "hist_gradient_boosting"
+    }
+  },
+  "run_guard": {
+    "confirmation_phrase": "EVALUATE_OFFICIAL_TEST_ONCE",
+    "output_directory_must_not_exist": true
+  }
+}

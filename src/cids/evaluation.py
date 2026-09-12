@@ -33,12 +33,15 @@ def _rate(numerator: int, denominator: int) -> float:
     return float(numerator / denominator) if denominator else 0.0
 
 
-def _predict_with_timing(estimator, features) -> tuple[np.ndarray, dict[str, float | int]]:
+def _predict_with_timing(
+    estimator, features, *, warmup: bool
+) -> tuple[np.ndarray, dict[str, float | int]]:
     samples = features.shape[0]
     if samples == 0:
         raise EvaluationError("validation partition must not be empty")
 
-    estimator.predict(features[: min(samples, 256)])
+    if warmup:
+        estimator.predict(features[: min(samples, 256)])
     started = perf_counter()
     predictions = np.asarray(estimator.predict(features))
     seconds = perf_counter() - started
@@ -230,6 +233,7 @@ def evaluate_classifier(
     *,
     task: str,
     family_labels: pd.Series,
+    warmup: bool = True,
 ) -> dict:
     """Evaluate one fitted classifier on a validation partition only."""
     if task not in {"binary", "multiclass"}:
@@ -238,7 +242,7 @@ def evaluate_classifier(
         raise EvaluationError("classifier must implement predict_proba")
 
     target_array = np.asarray(target)
-    predictions, timing = _predict_with_timing(estimator, features)
+    predictions, timing = _predict_with_timing(estimator, features, warmup=warmup)
     classes = np.asarray(estimator.classes_)
     probabilities = np.asarray(estimator.predict_proba(features))
     if probabilities.shape != (len(target_array), len(classes)):

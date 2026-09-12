@@ -43,8 +43,9 @@ or representative of modern traffic.
 | Frozen experiment | `unsw-nb15-experiment-v1` |
 | Selected binary model | Histogram Gradient Boosting |
 | Selected multiclass model | Histogram Gradient Boosting |
+| Final evaluation protocol | Implemented as `unsw-nb15-final-evaluation-v1` |
 | Official test state | Sealed; no v2.0 model evaluation performed |
-| Next milestone | Clean reproduction check, then one-time official-test evaluation |
+| Next milestone | Run clean reproduction and one-time official test on Arun's Mac |
 
 ## Release roadmap
 
@@ -89,6 +90,8 @@ Status: **In progress**
 - [x] Add configuration files for experiments and persist result metadata.
 - [x] Add tests covering schema validation, leakage prevention, label mapping,
       serialization, and deterministic outputs.
+- [x] Pin and test a guarded one-time official-test protocol.
+- [ ] Run the clean validation reproduction and official-test evaluation once.
 - [ ] Document reproducible benchmark results and limitations.
 
 Exit criteria: another person can download the selected dataset, reproduce the
@@ -151,6 +154,8 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Train Isolation Forest and its preprocessor only on normal training rows, using the 95th percentile of normal-training anomaly scores as a fixed threshold. | Creates a label-free attack reference without learning attack categories or tuning the threshold on validation labels. |
 | 2026-09-05 | Rank candidates by macro F1, then balanced accuracy, then false-positive rate. | Prioritizes performance across minority attack families instead of allowing common classes to dominate selection. |
 | 2026-09-05 | Select Histogram Gradient Boosting for both final supervised tasks. | It ranks first under the frozen validation-only rule; the official test was not used. |
+| 2026-09-12 | Refit each selected model on cleaned train plus validation data, then evaluate both tasks in one recorded official-test run. | Uses all development data after selection while preventing further model choice based on test performance. |
+| 2026-09-12 | Require a matching clean validation reproduction, explicit confirmation phrase, and new output directory before final evaluation. | Reduces accidental test access and makes the final benchmark auditable. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -172,6 +177,6 @@ Before finishing:
 
 ## Next session
 
-1. Reproduce the frozen validation workflow from a clean environment.
-2. Add a one-time official-test evaluation command that accepts only the recorded selected models.
-3. Run the final test once, document results and error analysis, then close v2.0.
+1. Apply and push the guarded final-evaluation implementation.
+2. Reproduce the frozen validation workflow from a clean environment on Arun's Mac.
+3. Run the final test once, preserve its JSON report, document results and error analysis, then close v2.0.
