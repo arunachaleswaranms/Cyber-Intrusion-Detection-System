@@ -78,6 +78,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+The guarded v2.0 reproduction and one-time official evaluation use Python 3.12
+with [`requirements-reproduction.txt`](requirements-reproduction.txt), which
+pins the complete benchmark environment. Follow
+[`docs/final-evaluation-protocol.md`](docs/final-evaluation-protocol.md) for that
+workflow instead of the general setup above.
+
 On Windows PowerShell, activate the environment with
 `.venv\Scripts\Activate.ps1`.
 

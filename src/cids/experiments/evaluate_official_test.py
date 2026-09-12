@@ -76,15 +76,18 @@ def main() -> int:
         args.reproduction_selection,
         config=config,
     )
-    validate_reproduced_selection(
-        reproduced_selection,
-        recorded_selection,
-        config=config,
-    )
     protocol = load_final_protocol(
         args.protocol,
         config=config,
         selection=recorded_selection,
+    )
+    validate_reproduced_selection(
+        reproduced_selection,
+        recorded_selection,
+        config=config,
+        metric_abs_tolerance=protocol["run_guard"][
+            "reproduction_metric_abs_tolerance"
+        ],
     )
     verified = {item.role: item for item in verify_dataset(args.data_dir, args.manifest)}
     dataset_files = {

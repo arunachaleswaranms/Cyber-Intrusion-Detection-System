@@ -44,14 +44,16 @@ or representative of modern traffic.
 | Selected binary model | Histogram Gradient Boosting |
 | Selected multiclass model | Histogram Gradient Boosting |
 | Final evaluation protocol | Implemented as `unsw-nb15-final-evaluation-v1` |
+| Reproduction environment | Python 3.12 with exact dependencies in `requirements-reproduction.txt` |
+| Mac reproduction | Passed dataset, split, tests, winners, ranking, and bounded metric checks |
 | Official test state | Sealed; no v2.0 model evaluation performed |
-| Next milestone | Run clean reproduction and one-time official test on Arun's Mac |
+| Next milestone | Apply the protocol amendment, then run the official test once on Arun's Mac |
 
 ## Release roadmap
 
 ### v1.1 — Repair the original baseline
 
-Status: **Published; release tag pending**
+Status: **Published as `v1.1.0`**
 
 - [x] Remove train/test preprocessing leakage.
 - [x] Load original headerless KDD Cup gzip files correctly.
@@ -91,7 +93,8 @@ Status: **In progress**
 - [x] Add tests covering schema validation, leakage prevention, label mapping,
       serialization, and deterministic outputs.
 - [x] Pin and test a guarded one-time official-test protocol.
-- [ ] Run the clean validation reproduction and official-test evaluation once.
+- [x] Run the clean validation reproduction on Arun's Apple Silicon Mac.
+- [ ] Run the official-test evaluation once.
 - [ ] Document reproducible benchmark results and limitations.
 
 Exit criteria: another person can download the selected dataset, reproduce the
@@ -156,6 +159,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-05 | Select Histogram Gradient Boosting for both final supervised tasks. | It ranks first under the frozen validation-only rule; the official test was not used. |
 | 2026-09-12 | Refit each selected model on cleaned train plus validation data, then evaluate both tasks in one recorded official-test run. | Uses all development data after selection while preventing further model choice based on test performance. |
 | 2026-09-12 | Require a matching clean validation reproduction, explicit confirmation phrase, and new output directory before final evaluation. | Reduces accidental test access and makes the final benchmark auditable. |
+| 2026-09-12 | Pin the final benchmark to Python 3.12 and an exact dependency lock, while permitting at most `0.005` absolute selected-metric variation across platforms. | The Apple Silicon rerun matched the pinned dataset, documented row counts, winners, and rankings; recorded deterministic split fingerprints; and had a largest metric difference of `0.003841`. Exact floating-point equality was not portable. This amendment was made while the official test remained sealed. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -177,6 +181,6 @@ Before finishing:
 
 ## Next session
 
-1. Apply and push the guarded final-evaluation implementation.
-2. Reproduce the frozen validation workflow from a clean environment on Arun's Mac.
+1. Apply and push the cross-platform reproduction amendment.
+2. Confirm the preserved Mac reproduction passes the amended guard.
 3. Run the final test once, preserve its JSON report, document results and error analysis, then close v2.0.

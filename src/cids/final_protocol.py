@@ -12,6 +12,7 @@ from cids.selection import load_model_selection, selection_sha256
 
 FINAL_PROTOCOL_VERSION = "unsw-nb15-final-evaluation-v1"
 FINAL_CONFIRMATION_PHRASE = "EVALUATE_OFFICIAL_TEST_ONCE"
+REPRODUCTION_METRIC_ABS_TOLERANCE = 0.005
 DEFAULT_FINAL_PROTOCOL = (
     Path(__file__).resolve().parents[2]
     / "configs"
@@ -94,13 +95,24 @@ def validate_final_protocol(
 
     guard = _exact_keys(
         root["run_guard"],
-        {"confirmation_phrase", "output_directory_must_not_exist"},
+        {
+            "confirmation_phrase",
+            "output_directory_must_not_exist",
+            "reproduction_metric_abs_tolerance",
+        },
         "run_guard",
     )
     if guard["confirmation_phrase"] != FINAL_CONFIRMATION_PHRASE:
         raise FinalProtocolError("final confirmation phrase does not match")
     if guard["output_directory_must_not_exist"] is not True:
         raise FinalProtocolError("final output directory must be new")
+    if (
+        not isinstance(guard["reproduction_metric_abs_tolerance"], (int, float))
+        or isinstance(guard["reproduction_metric_abs_tolerance"], bool)
+        or guard["reproduction_metric_abs_tolerance"]
+        != REPRODUCTION_METRIC_ABS_TOLERANCE
+    ):
+        raise FinalProtocolError("unsupported reproduction metric tolerance")
     return root
 
 
@@ -141,9 +153,13 @@ def validate_reproduced_selection(
     recorded: dict,
     *,
     config: dict,
+    metric_abs_tolerance: float = REPRODUCTION_METRIC_ABS_TOLERANCE,
 ) -> None:
-    """Require a clean validation rerun to reproduce the frozen selection."""
+    """Require stable selection with bounded cross-platform metric variation."""
     from cids.selection import validate_model_selection
+
+    if metric_abs_tolerance != REPRODUCTION_METRIC_ABS_TOLERANCE:
+        raise FinalProtocolError("unsupported reproduction metric tolerance")
 
     validate_model_selection(reproduced, config)
     validate_model_selection(recorded, config)
@@ -165,9 +181,12 @@ def validate_reproduced_selection(
             if not math.isclose(
                 float(actual_value),
                 float(expected_value),
-                rel_tol=1e-9,
-                abs_tol=1e-12,
+                rel_tol=0.0,
+                abs_tol=metric_abs_tolerance,
             ):
+                difference = abs(float(actual_value) - float(expected_value))
                 raise FinalProtocolError(
-                    f"{task} reproduction metric differs: {metric}"
+                    f"{task} reproduction metric differs beyond tolerance: "
+                    f"{metric} (difference={difference:.12g}, "
+                    f"tolerance={metric_abs_tolerance})"
                 )

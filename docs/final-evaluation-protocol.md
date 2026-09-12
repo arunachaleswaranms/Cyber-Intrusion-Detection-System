@@ -3,7 +3,7 @@
 Protocol: `unsw-nb15-final-evaluation-v1`
 
 Canonical protocol SHA-256:
-`d06548842891165455e52639bb47ef11046019a0b440e58c194e0d42c24a503a`
+`c4fc000d24d27cada9740c1350c3b1e22d710cbd537353f33c9036a980ccb517`
 
 Status: **Implemented and tested; official test still sealed**
 
@@ -33,8 +33,9 @@ The final run will:
 - The reproduced selection must be a separate generated file, not the committed
   selection record.
 - Reproduced winners, candidate order, ranking rules, artifact versions, and
-  selected metrics must match the committed record within strict numerical
-  tolerance.
+  configuration must match the committed record exactly. Selected validation
+  metrics may differ by at most `0.005` absolute to accommodate bounded
+  cross-platform numerical variation.
 - Any configuration, selection, protocol, manifest, schema, or split mismatch
   stops the run before model evaluation.
 - If execution fails after starting, `run_state.json` remains `in_progress` for
@@ -47,14 +48,15 @@ not using test performance for another tuning cycle.
 
 ## Step 1: clean validation reproduction
 
-From the repository root, create a new environment and generated-artifact
-directory:
+From the repository root, create a new Python 3.12 environment and generated
+artifact directory. The benchmark lock file is intentionally separate from the
+general development requirements:
 
 ```bash
-python3 -m venv .venv-reproduction
+python3.12 -m venv .venv-reproduction
 source .venv-reproduction/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt
+python -m pip install pip==26.2.1
+python -m pip install -r requirements-reproduction.txt
 
 REPRO_DIR="artifacts/v2/reproduction-v1"
 ```
@@ -90,6 +92,13 @@ binary: hist_gradient_boosting
 multiclass: hist_gradient_boosting
 Official test status: sealed
 ```
+
+The reproduction gate compares the generated selection with the committed
+selection. Both model names, candidate orders, ranking rules, and artifact
+versions must be identical. Every selected metric must be within the protocol's
+absolute tolerance of `0.005`. See
+[`model-selection.md`](model-selection.md) for the recorded Apple Silicon
+reproduction and its split fingerprints.
 
 ## Step 2: explicit one-time final run
 

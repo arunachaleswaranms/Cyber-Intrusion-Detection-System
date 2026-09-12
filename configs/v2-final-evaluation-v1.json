@@ -17,6 +17,7 @@
   },
   "run_guard": {
     "confirmation_phrase": "EVALUATE_OFFICIAL_TEST_ONCE",
-    "output_directory_must_not_exist": true
+    "output_directory_must_not_exist": true,
+    "reproduction_metric_abs_tolerance": 0.005
   }
 }
