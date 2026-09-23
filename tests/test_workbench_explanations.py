@@ -1,4 +1,6 @@
 import copy
+import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -29,6 +31,14 @@ from cids.workbench.explanations import (  # noqa: E402
     aggregate_to_source_features,
     run_explanation_gate,
     source_feature_mapping,
+)
+
+
+SELECTED_GATE_REPORT = (
+    Path(__file__).parents[1] / "results" / "v2.1" / "shap-gate-selected-v2.json"
+)
+SELECTED_GATE_REPORT_SHA256 = (
+    "d6db9aae2368b09b33b22a666d67208e27f28c277a5e613b07aed12e0551f528"
 )
 
 
@@ -191,3 +201,27 @@ def test_shap_cli_requires_explicit_trust_before_any_deserialization(
 
     with pytest.raises(gate_cli.ShapGateCliError, match="refusing to deserialize"):
         gate_cli.main()
+
+
+def test_preserved_selected_artifact_gate_evidence_passes_frozen_bounds():
+    encoded = SELECTED_GATE_REPORT.read_bytes()
+    assert hashlib.sha256(encoded).hexdigest() == SELECTED_GATE_REPORT_SHA256
+    report = json.loads(encoded)
+
+    assert report["gate_version"] == "cids-shap-compatibility-gate-v2"
+    assert report["status"] == "passed"
+    assert report["official_test_status"] == "not_evaluated_by_gate"
+    assert report["workbench_config_sha256"] == (
+        "05a07e4e2590578d41c6c6a884c1037a2a0595d16e71debecf4508f3c3e11099"
+    )
+    assert set(report["tasks"]) == {"binary", "multiclass"}
+
+    for task in report["tasks"].values():
+        assert task["explainer_algorithm"] == "permutation"
+        assert task["background_partition"] == "prepared_train"
+        assert task["foreground_partition"] == "prepared_validation"
+        assert task["official_test_used_as_explanation_data"] is False
+        assert task["source_feature_count"] == 42
+        assert task["max_additivity_error"] <= 1e-5
+        assert task["max_aggregation_error"] <= 1e-10
+        assert task["elapsed_seconds"] <= 60.0

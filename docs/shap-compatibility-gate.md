@@ -2,7 +2,7 @@
 
 Gate version: `cids-shap-compatibility-gate-v2`
 
-Status: **TreeExplainer rejected; bounded PermutationExplainer selected-artifact gate pending**
+Status: **Passed on both selected local artifacts; ADR 0003 accepted**
 
 ## Purpose
 
@@ -45,8 +45,25 @@ family and parameters with the actual transformed dimensions recorded by v2.0:
 | Binary | `10 × 194` | 15.080 seconds | `1.15e-14` |
 | Multiclass | `10 × 68 × 10` | 8.672 seconds | `3.11e-14` |
 
-These results establish a representative compatibility proof only. The gate is
-not complete until it passes against Arun's two original local final artifacts.
+These results established the representative proof before the selected-artifact
+run.
+
+## Selected-artifact result
+
+Gate v2 passed on Arun's Apple Silicon Mac on 2026-09-23 using Python `3.12.14`
+and the pinned libraries:
+
+| Task | Shape | Elapsed | Maximum additivity error | Maximum aggregation error |
+|---|---:|---:|---:|---:|
+| Binary | `10 × 194` | 3.930 seconds | `3.55e-14` | `1.78e-15` |
+| Multiclass | `10 × 68 × 10` | 4.293 seconds | `6.22e-14` | `7.11e-15` |
+
+Both tasks passed the correctness and 60-second resource limits. The report
+records `official_test_status: not_evaluated_by_gate` and
+`official_test_used_as_explanation_data: false` for both tasks. Its SHA-256 is
+`d6db9aae2368b09b33b22a666d67208e27f28c277a5e613b07aed12e0551f528`,
+and the exact report is preserved in
+[`results/v2.1/shap-gate-selected-v2.json`](../results/v2.1/shap-gate-selected-v2.json).
 
 ## Run the selected-artifact gate on macOS
 
@@ -104,10 +121,9 @@ cp artifacts/v2.1/shap-gate-selected-v2.json \
   "$HOME/Downloads/cids-v2.1-shap-gate-selected-v2.json"
 ```
 
-Upload that JSON report to the project conversation. If both tasks pass, ADR
-0003 can be accepted and Phase 1 can close. If either task fails, do not build
-per-record explanation UI; use only global permutation importance calculated on
-development data.
+This procedure is retained for reproducibility. The accepted report above is
+the Phase 1 evidence; it must not be replaced by repeated runs presented as the
+original acceptance result.
 
 ## References
 

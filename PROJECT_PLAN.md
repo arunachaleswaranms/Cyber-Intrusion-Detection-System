@@ -53,7 +53,7 @@ or representative of modern traffic.
 | Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
 | Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
-| Next milestone | Apply the fallback amendment, run gate v2 on Arun's Mac, and close Phase 1 |
+| Next milestone | Implement the Phase 2 evidence-first Streamlit dashboard |
 
 ## Release roadmap
 
@@ -109,7 +109,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phase 1 in progress**
+Status: **Phase 1 complete; Phase 2 next**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -123,7 +123,7 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Phase 1: implement framework-independent input and evidence contracts.
 - [x] Phase 1: implement trusted-model-pack schema and preflight.
 - [x] Phase 1: pass representative binary and multiclass SHAP integration tests.
-- [ ] Phase 1: complete the pinned SHAP compatibility/correctness/performance spike.
+- [x] Phase 1: complete the pinned SHAP compatibility/correctness/performance spike.
 - [ ] Phase 2: implement the evidence-first Streamlit pages.
 - [ ] Phase 3: implement trusted local inference, review, and safe export.
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
@@ -184,6 +184,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-12 | Put SHAP behind a pinned technical gate and keep official-test data out of explanation backgrounds and threshold experiments. | Avoids claiming unsupported explanations and preserves the frozen v2.0 test boundary. |
 | 2026-09-12 | Pin the Phase 1 explanation gate to SHAP `0.52.0`, raw model output, a deterministic 256-row development background, ten explained rows, and explicit correctness/resource bounds. | Representative binary and multiclass HGB checks pass on Python 3.12; approval remains pending against the original local selected artifacts. |
 | 2026-09-12 | Reject interventional TreeExplainer for the selected binary artifact and propose bounded model-agnostic PermutationExplainer in ADR 0003. | The real artifact produced an additivity gap of about `0.228350`; the fallback preserves the independent `1e-5` correctness check and remains pending on both selected artifacts. |
+| 2026-09-23 | Accept bounded PermutationExplainer and close v2.1 Phase 1. | Both selected artifacts passed gate v2 in under 4.3 seconds with maximum additivity error `6.22e-14`; the report confirms the official test was not evaluated or used as explanation data. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -205,8 +206,8 @@ Before finishing:
 
 ## Next session
 
-1. Transfer and push the Phase 1 explanation-fallback amendment.
-2. Run gate v2 in `docs/shap-compatibility-gate.md` against the two original
-   local final artifacts on Arun's Mac and return the generated JSON report.
-3. Accept or reject ADR 0003 from that evidence and close Phase 1 before
-   starting Streamlit.
+1. Transfer and push the Phase 1 closure evidence commit.
+2. Implement Phase 2 evidence mode with Overview, Binary detection, Attack
+   families, and Provenance pages.
+3. Keep Phase 2 runnable from a clean clone without datasets or local model
+   artifacts.

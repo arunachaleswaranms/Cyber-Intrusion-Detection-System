@@ -1,0 +1,95 @@
+{
+  "completed_at_utc": "2026-09-23T13:15:19.222309+00:00",
+  "environment": {
+    "joblib": "1.5.3",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "python": "3.12.14",
+    "scikit_learn": "1.8.0",
+    "shap": "0.52.0"
+  },
+  "gate_version": "cids-shap-compatibility-gate-v2",
+  "official_test_status": "not_evaluated_by_gate",
+  "status": "passed",
+  "tasks": {
+    "binary": {
+      "artifact_sha256": "4f0364cee99e05d595110ca29a51c0fb7f4c500527dfed426f115ebfc8a84482",
+      "background_partition": "prepared_train",
+      "background_rows": 256,
+      "class_labels": [
+        0,
+        1
+      ],
+      "elapsed_seconds": 3.9303271248936653,
+      "explained_classes": [
+        1
+      ],
+      "explained_rows": 10,
+      "explainer_algorithm": "permutation",
+      "foreground_partition": "prepared_validation",
+      "masker": "independent_development_background",
+      "max_additivity_error": 3.552713678800501e-14,
+      "max_aggregation_error": 1.7763568394002505e-15,
+      "model_name": "hist_gradient_boosting",
+      "model_output": "raw",
+      "official_test_used_as_explanation_data": false,
+      "permutation_rounds": 1,
+      "shap_values_shape": [
+        10,
+        194
+      ],
+      "source_feature_count": 42,
+      "task": "binary",
+      "transformed_feature_count": 194
+    },
+    "multiclass": {
+      "artifact_sha256": "ea49309a6e20c448379deef8145bdb103fff59a8825b3d93747f4139fa142308",
+      "background_partition": "prepared_train",
+      "background_rows": 256,
+      "class_labels": [
+        "analysis",
+        "backdoor",
+        "dos",
+        "exploits",
+        "fuzzers",
+        "generic",
+        "normal",
+        "reconnaissance",
+        "shellcode",
+        "worms"
+      ],
+      "elapsed_seconds": 4.292559082969092,
+      "explained_classes": [
+        "analysis",
+        "backdoor",
+        "dos",
+        "exploits",
+        "fuzzers",
+        "generic",
+        "normal",
+        "reconnaissance",
+        "shellcode",
+        "worms"
+      ],
+      "explained_rows": 10,
+      "explainer_algorithm": "permutation",
+      "foreground_partition": "prepared_validation",
+      "masker": "independent_development_background",
+      "max_additivity_error": 6.217248937900877e-14,
+      "max_aggregation_error": 7.105427357601002e-15,
+      "model_name": "hist_gradient_boosting",
+      "model_output": "raw",
+      "official_test_used_as_explanation_data": false,
+      "permutation_rounds": 1,
+      "shap_values_shape": [
+        10,
+        68,
+        10
+      ],
+      "source_feature_count": 42,
+      "task": "multiclass",
+      "transformed_feature_count": 68
+    }
+  },
+  "workbench_config_sha256": "05a07e4e2590578d41c6c6a884c1037a2a0595d16e71debecf4508f3c3e11099"
+}
