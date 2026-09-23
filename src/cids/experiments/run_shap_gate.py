@@ -33,7 +33,7 @@ from cids.workbench.model_pack import (
     current_runtime,
 )
 
-GATE_VERSION = "cids-shap-compatibility-gate-v1"
+GATE_VERSION = "cids-shap-compatibility-gate-v2"
 CONFIRMATION_PHRASE = "TRUST_LOCAL_V2_ARTIFACTS"
 
 

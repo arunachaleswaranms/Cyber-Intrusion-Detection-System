@@ -162,8 +162,10 @@ def test_feature_contract_still_has_exactly_three_categorical_features():
 def test_workbench_policy_is_pinned_and_rejects_excessive_explanation_work():
     config = load_workbench_config()
     assert workbench_config_sha256(config) == (
-        "59772a2f9ec058c51d58b5e9757dbff276b6f9599f584d99366c9a9c0a8037c9"
+        "05a07e4e2590578d41c6c6a884c1037a2a0595d16e71debecf4508f3c3e11099"
     )
+    assert config["explainability"]["algorithm"] == "permutation"
+    assert config["explainability"]["permutation_rounds"] == 1
 
     config = copy.deepcopy(config)
     config["explainability"]["max_explain_rows"] = 33

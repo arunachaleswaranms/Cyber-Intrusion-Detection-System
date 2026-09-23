@@ -89,6 +89,8 @@ def test_shap_gate_maps_classes_adds_up_and_aggregates_to_42_features(task):
     assert result.shap_values_shape[0] == 4
     assert result.max_additivity_error <= 1e-5
     assert result.max_aggregation_error <= 1e-10
+    assert result.explainer_algorithm == "permutation"
+    assert result.permutation_rounds == 1
     if task == "binary":
         assert result.explained_classes == (1,)
         assert len(result.shap_values_shape) == 2

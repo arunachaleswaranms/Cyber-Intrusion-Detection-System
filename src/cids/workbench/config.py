@@ -6,9 +6,9 @@ import hashlib
 import json
 from pathlib import Path
 
-WORKBENCH_CONFIG_VERSION = "cids-workbench-config-v1"
+WORKBENCH_CONFIG_VERSION = "cids-workbench-config-v2"
 DEFAULT_WORKBENCH_CONFIG = (
-    Path(__file__).resolve().parents[3] / "configs" / "v2.1-workbench-v1.json"
+    Path(__file__).resolve().parents[3] / "configs" / "v2.1-workbench-v2.json"
 )
 
 
@@ -69,10 +69,13 @@ def validate_workbench_config(config: object) -> dict:
         root["explainability"],
         {
             "shap_version",
+            "algorithm",
             "background_rows",
             "explain_rows",
             "max_explain_rows",
             "max_task_seconds",
+            "permutation_rounds",
+            "seed",
             "additivity_abs_tolerance",
             "aggregation_abs_tolerance",
         },
@@ -80,6 +83,12 @@ def validate_workbench_config(config: object) -> dict:
     )
     if explainability["shap_version"] != "0.52.0":
         raise WorkbenchConfigError("unsupported SHAP version")
+    if explainability["algorithm"] != "permutation":
+        raise WorkbenchConfigError("unsupported explanation algorithm")
+    if explainability["permutation_rounds"] != 1:
+        raise WorkbenchConfigError("permutation rounds must remain bounded to one")
+    if explainability["seed"] != 42:
+        raise WorkbenchConfigError("explanation seed must remain frozen at 42")
     for key in ("background_rows", "explain_rows", "max_explain_rows"):
         value = explainability[key]
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:

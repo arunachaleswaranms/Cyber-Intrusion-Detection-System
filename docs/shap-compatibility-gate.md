@@ -1,14 +1,17 @@
 # v2.1 SHAP compatibility gate
 
-Gate version: `cids-shap-compatibility-gate-v1`
+Gate version: `cids-shap-compatibility-gate-v2`
 
-Status: **Representative gate passed; selected local artifacts pending**
+Status: **TreeExplainer rejected; bounded PermutationExplainer selected-artifact gate pending**
 
 ## Purpose
 
 The v2.1 design does not assume that SHAP supports the selected binary and
-multiclass models correctly. This gate checks the real locally retained v2.0
-final artifacts before any explanation UI is approved.
+multiclass models correctly. The original interventional `TreeExplainer` route
+failed additivity against the selected binary artifact. [ADR 0003](decisions/0003-v2.1-explanation-fallback.md)
+therefore proposes a bounded, model-agnostic `PermutationExplainer` fallback.
+This gate checks the real locally retained v2.0 final artifacts before any
+explanation UI is approved.
 
 It verifies:
 
@@ -16,6 +19,8 @@ It verifies:
 - binary and multiclass class-axis mapping;
 - reconstruction of raw estimator outputs within `1e-5` absolute error;
 - lossless aggregation from transformed one-hot fields to 42 source features;
+- model-agnostic `PermutationExplainer` with one forward/reverse cycle and seed
+  `42`;
 - a deterministic 256-row prepared-training background;
 - ten prepared-validation records per task;
 - a maximum of 32 explained records and 60 seconds per task;
@@ -32,13 +37,13 @@ The automated test suite trains representative binary and multiclass
 preprocessing and final-artifact code. It verifies SHAP dimensions, additivity,
 class mapping, and aggregation back to the original schema.
 
-An additional bounded synthetic shape check used the same selected estimator
+An additional bounded synthetic fallback check used the same selected estimator
 family and parameters with the actual transformed dimensions recorded by v2.0:
 
 | Task | Shape | 256-row background / 10 explanations | Maximum additivity error |
 |---|---:|---:|---:|
-| Binary | `10 × 194` | 0.123 seconds | `2.75e-08` |
-| Multiclass | `10 × 68 × 10` | 13.176 seconds | `7.43e-08` |
+| Binary | `10 × 194` | 15.080 seconds | `1.15e-14` |
+| Multiclass | `10 × 68 × 10` | 8.672 seconds | `3.11e-14` |
 
 These results establish a representative compatibility proof only. The gate is
 not complete until it passes against Arun's two original local final artifacts.
@@ -76,7 +81,7 @@ PYTHONPATH=src caffeinate -i "$VENV_DIR/bin/python" \
   --data-dir dataset/unsw-nb15/raw \
   --binary-artifact artifacts/v2/official-test-v1/binary-hist_gradient_boosting.joblib \
   --multiclass-artifact artifacts/v2/official-test-v1/multiclass-hist_gradient_boosting.joblib \
-  --output artifacts/v2.1/shap-gate-selected-v1.json \
+  --output artifacts/v2.1/shap-gate-selected-v2.json \
   --confirm TRUST_LOCAL_V2_ARTIFACTS
 ```
 
@@ -88,20 +93,21 @@ Expected terminal status:
 ```text
 SHAP compatibility gate: PASSED
 Official test status: not_evaluated_by_gate
-Wrote gate report: artifacts/v2.1/shap-gate-selected-v1.json
+Wrote gate report: artifacts/v2.1/shap-gate-selected-v2.json
 ```
 
 Preserve a copy for review without committing generated model files:
 
 ```bash
-shasum -a 256 artifacts/v2.1/shap-gate-selected-v1.json
-cp artifacts/v2.1/shap-gate-selected-v1.json \
-  "$HOME/Downloads/cids-v2.1-shap-gate-selected-v1.json"
+shasum -a 256 artifacts/v2.1/shap-gate-selected-v2.json
+cp artifacts/v2.1/shap-gate-selected-v2.json \
+  "$HOME/Downloads/cids-v2.1-shap-gate-selected-v2.json"
 ```
 
-Upload that JSON report to the project conversation. If both tasks pass, the
-SHAP decision can be accepted and Phase 1 can close. If either task fails, do not
-build explanation UI; record the failure and decide the fallback in a new ADR.
+Upload that JSON report to the project conversation. If both tasks pass, ADR
+0003 can be accepted and Phase 1 can close. If either task fails, do not build
+per-record explanation UI; use only global permutation importance calculated on
+development data.
 
 ## References
 
@@ -109,3 +115,5 @@ build explanation UI; record the failure and decide the fallback in a new ADR.
   Python 3.12+ Apple Silicon wheel.
 - [SHAP TreeExplainer](https://shap.readthedocs.io/en/stable/generated/shap.TreeExplainer.html)
   — tree explanations, background-data behavior, and raw/probability outputs.
+- [SHAP PermutationExplainer](https://shap.readthedocs.io/en/stable/generated/shap.PermutationExplainer.html)
+  — model-agnostic local explanations and forward/reverse permutation behavior.

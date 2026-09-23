@@ -33,7 +33,9 @@ class ExplanationGateResult:
     max_aggregation_error: float
     elapsed_seconds: float
     model_output: str
-    feature_perturbation: str
+    explainer_algorithm: str
+    masker: str
+    permutation_rounds: int
 
 
 def source_feature_mapping(artifact: FinalModelArtifact) -> tuple[str, ...]:
@@ -147,13 +149,29 @@ def run_explanation_gate(
     masker = shap.maskers.Independent(
         background, max_samples=len(background_frame)
     )
-    explainer = shap.TreeExplainer(
-        artifact.estimator,
-        data=masker,
-        model_output="raw",
-        feature_perturbation="interventional",
+    def raw_model_output(values):
+        return np.asarray(artifact.estimator.decision_function(values), dtype=float)
+
+    explainer = shap.PermutationExplainer(
+        raw_model_output,
+        masker,
+        seed=explanation_policy["seed"],
     )
-    explanation = explainer(foreground, check_additivity=True)
+    transformed_feature_count = foreground.shape[1]
+    max_evals = (
+        explanation_policy["permutation_rounds"]
+        * (2 * transformed_feature_count + 1)
+    )
+    try:
+        explanation = explainer(
+            foreground,
+            max_evals=max_evals,
+            silent=True,
+        )
+    except Exception as exc:
+        raise ExplanationGateError(
+            f"bounded permutation explanation failed: {type(exc).__name__}: {exc}"
+        ) from exc
     elapsed = perf_counter() - started
     if elapsed > explanation_policy["max_task_seconds"]:
         raise ExplanationGateError(
@@ -212,5 +230,7 @@ def run_explanation_gate(
         max_aggregation_error=aggregation_error,
         elapsed_seconds=elapsed,
         model_output="raw",
-        feature_perturbation="interventional",
+        explainer_algorithm="permutation",
+        masker="independent_development_background",
+        permutation_rounds=explanation_policy["permutation_rounds"],
     )
