@@ -160,6 +160,9 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 
 ## Validation performed for Phase 2
 
+- A fresh `git clone` of the branch, with no `artifacts/` directory and no
+  dataset, passed the complete suite (including every Streamlit page test)
+  and started a healthy loopback-only server.
 - Full suite in the pinned workbench environment (Python 3.12.14, no Streamlit),
   in the dashboard environment (Python 3.12.14 with `requirements-dashboard.txt`),
   and in a Python 3.11 environment matching the base CI job.
