@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phase 1 complete; Phase 2 next |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 complete; Phase 3 next |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -28,6 +28,30 @@ bounded model-agnostic fallback in
 both original local artifacts and accepted. The preserved gate evidence is in
 [`results/v2.1`](results/v2.1); see
 [`docs/shap-compatibility-gate.md`](docs/shap-compatibility-gate.md) for limits.
+Phase 2 adds the evidence-first Streamlit dashboard described below.
+
+## Evidence dashboard (v2.1 Phase 2)
+
+A local Streamlit dashboard presents the frozen v2.0 results from a clean clone:
+no dataset, no model artifact, and no network access are needed. Every number
+is read from committed, SHA-256-verified evidence and tagged with its evaluation
+stage (official test, validation, or explanation gate) and exact JSON source.
+It never loads a model or recomputes a result.
+
+```bash
+python3.12 -m venv .venv-dashboard
+source .venv-dashboard/bin/activate
+python -m pip install pip==26.2.1
+python -m pip install -r requirements-dashboard.txt
+streamlit run dashboard/app.py    # from the repository root
+```
+
+The server binds to `127.0.0.1` with usage telemetry disabled. Pages cover the
+overview, binary detection, attack families, explainability status, and
+evidence provenance. Global feature importance is **not** shown: the committed
+gate report contains correctness diagnostics only, and attribution views are
+scheduled for Phase 4. See [`docs/dashboard.md`](docs/dashboard.md) for evidence
+sources, degraded states, validation, and limitations.
 
 ## Current v2.0 capabilities
 
@@ -70,18 +94,24 @@ procedure, executed once on 2026-09-12, is documented in
 ├── configs/                     # Frozen v2.0 experiment and selection records
 ├── docs/                        # Decisions, schemas, policies, and results
 ├── notebooks/                   # Original exploratory notebooks
+├── dashboard/app.py             # Streamlit entry point (v2.1 evidence mode)
 ├── results/v2.0/                # Frozen official-test JSON evidence and hashes
+├── results/v2.1/                # Accepted Phase 1 explanation-gate evidence
 ├── src/
-│   ├── cids/                    # Versioned v2.0 package
+│   ├── cids/                    # Versioned package
+│   │   ├── dashboard/           # Streamlit pages (only Streamlit importer)
 │   │   ├── datasets/
 │   │   ├── experiments/
-│   │   └── modeling/
+│   │   ├── modeling/
+│   │   └── workbench/           # Framework-independent v2.1 services
 │   ├── data_preprocessing.py    # v1.1 historical baseline
 │   ├── model_training.py
 │   └── model_evaluation.py
 ├── tests/
 ├── .github/workflows/test.yml
+├── requirements-dashboard.txt   # Pinned v2.1 dashboard environment
 ├── requirements-reproduction.txt
+├── requirements-workbench.txt
 ├── requirements.txt
 └── requirements-dev.txt
 ```
@@ -179,6 +209,10 @@ python src/model_evaluation.py \
 pip install -r requirements-dev.txt
 pytest -q
 ```
+
+Tests that need SHAP or Streamlit are skipped when those packages are absent.
+Install `requirements-dashboard.txt` (Python 3.12) to run the complete suite,
+including the Streamlit page tests.
 
 ## Limitations
 

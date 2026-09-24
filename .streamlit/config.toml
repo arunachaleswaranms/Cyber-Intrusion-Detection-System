@@ -1,0 +1,18 @@
+# Local-only defaults for the v2.1 evidence dashboard. Streamlit reads this file
+# when `streamlit run dashboard/app.py` is started from the repository root.
+
+[browser]
+# The dashboard must not send usage telemetry.
+gatherUsageStats = false
+
+[server]
+# Listen on loopback only. There is no authentication; do not expose the port.
+address = "127.0.0.1"
+headless = true
+
+[runner]
+# Render only explicit st.* calls; bare expressions must not reach the page.
+magicEnabled = false
+
+[client]
+toolbarMode = "minimal"
