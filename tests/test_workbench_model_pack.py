@@ -9,6 +9,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from cids.final_evaluation import FINAL_MODEL_ARTIFACT_VERSION  # noqa: E402
+from cids.workbench import model_pack  # noqa: E402
 from cids.workbench.model_pack import (  # noqa: E402
     EXPECTED_CONTRACTS_BASE,
     EXPECTED_RUNTIME,
@@ -17,6 +18,12 @@ from cids.workbench.model_pack import (  # noqa: E402
     compute_model_pack_id,
     preflight_model_pack,
 )
+
+
+@pytest.fixture
+def pinned_host_runtime(monkeypatch):
+    """Isolate path and hash checks from the interpreter running the suite."""
+    monkeypatch.setattr(model_pack, "current_runtime", lambda: copy.deepcopy(EXPECTED_RUNTIME))
 
 
 def sha256(data):
@@ -67,7 +74,9 @@ def rewrite_manifest(root, manifest):
     (root / "manifest.json").write_text(json.dumps(manifest))
 
 
-def test_preflight_verifies_manifest_runtime_paths_sizes_and_hashes(tmp_path):
+def test_preflight_verifies_manifest_runtime_paths_sizes_and_hashes(
+    tmp_path, pinned_host_runtime
+):
     root, manifest = valid_pack(tmp_path)
 
     verified = preflight_model_pack(root)
@@ -94,7 +103,7 @@ def test_preflight_rejects_traversal_even_with_recomputed_manifest_id(tmp_path):
         preflight_model_pack(root)
 
 
-def test_preflight_rejects_tampered_artifact(tmp_path):
+def test_preflight_rejects_tampered_artifact(tmp_path, pinned_host_runtime):
     root, _ = valid_pack(tmp_path)
     (root / "binary.joblib").write_bytes(b"changed-model")
 
@@ -102,12 +111,26 @@ def test_preflight_rejects_tampered_artifact(tmp_path):
         preflight_model_pack(root)
 
 
-def test_preflight_rejects_runtime_claim_not_matching_frozen_environment(tmp_path):
+def test_preflight_rejects_runtime_claim_not_matching_frozen_environment(
+    tmp_path, pinned_host_runtime
+):
     root, manifest = valid_pack(tmp_path)
     manifest["runtime"]["python"] = "3.12.13"
     rewrite_manifest(root, manifest)
 
-    with pytest.raises(ModelPackError, match="pinned environment"):
+    with pytest.raises(ModelPackError, match="model-pack runtime does not match"):
+        preflight_model_pack(root)
+
+
+def test_preflight_rejects_host_runtime_not_matching_frozen_environment(
+    tmp_path, monkeypatch
+):
+    root, _ = valid_pack(tmp_path)
+    host = copy.deepcopy(EXPECTED_RUNTIME)
+    host["libraries"]["scikit_learn"] = "1.7.2"
+    monkeypatch.setattr(model_pack, "current_runtime", lambda: host)
+
+    with pytest.raises(ModelPackError, match="current runtime does not match"):
         preflight_model_pack(root)
 
 

@@ -37,7 +37,7 @@ or representative of modern traffic.
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
-| Automated tests | Passing locally and in GitHub Actions |
+| Automated tests | Passing locally on Python 3.11 and 3.12.14 (workbench and dashboard locks). The Python 3.11 `test` job had failed on `main` since Phase 1 because two model-pack tests depended on the host interpreter; fixed on the Phase 2 branch, pending confirmation in GitHub Actions |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
@@ -53,7 +53,9 @@ or representative of modern traffic.
 | Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
 | Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
-| Next milestone | Implement the Phase 2 evidence-first Streamlit dashboard |
+| v2.1 dashboard | Phase 2 evidence mode implemented on branch `cids-v2.1-phase2`; see `docs/dashboard.md` |
+| Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
+| Next milestone | Merge Phase 2, then design and implement Phase 3 trusted local inference |
 
 ## Release roadmap
 
@@ -109,7 +111,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phase 1 complete; Phase 2 next**
+Status: **Phases 1–2 complete; Phase 3 next**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -124,7 +126,7 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Phase 1: implement trusted-model-pack schema and preflight.
 - [x] Phase 1: pass representative binary and multiclass SHAP integration tests.
 - [x] Phase 1: complete the pinned SHAP compatibility/correctness/performance spike.
-- [ ] Phase 2: implement the evidence-first Streamlit pages.
+- [x] Phase 2: implement the evidence-first Streamlit pages.
 - [ ] Phase 3: implement trusted local inference, review, and safe export.
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
 - [ ] Phase 5: add pinned dashboard dependencies, Docker, and release checks.
@@ -185,6 +187,11 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-12 | Pin the Phase 1 explanation gate to SHAP `0.52.0`, raw model output, a deterministic 256-row development background, ten explained rows, and explicit correctness/resource bounds. | Representative binary and multiclass HGB checks pass on Python 3.12; approval remains pending against the original local selected artifacts. |
 | 2026-09-12 | Reject interventional TreeExplainer for the selected binary artifact and propose bounded model-agnostic PermutationExplainer in ADR 0003. | The real artifact produced an additivity gap of about `0.228350`; the fallback preserves the independent `1e-5` correctness check and remains pending on both selected artifacts. |
 | 2026-09-23 | Accept bounded PermutationExplainer and close v2.1 Phase 1. | Both selected artifacts passed gate v2 in under 4.3 seconds with maximum additivity error `6.22e-14`; the report confirms the official test was not evaluated or used as explanation data. |
+| 2026-09-24 | Build Phase 2 as a read-only evidence catalog plus thin Streamlit pages in `src/cids/dashboard`, with `dashboard/app.py` as the entry point. | Keeps every Streamlit import in one package and every evidence rule in tested, framework-independent services; pages stay importable for `AppTest`. |
+| 2026-09-24 | Bind every displayed configuration to the official run by canonical digest and re-verify all evidence on each page view instead of caching it. | Makes each number traceable to a committed file and JSON pointer; verification costs about 7 ms, so stale or edited files cannot hide behind a cache. |
+| 2026-09-24 | Compare validation and official-test metrics using the committed frozen selection record, labelled with its stage and the refit caveat. | The Apple Silicon reproduction record quoted in the results document is not committed and cannot be verified by a clean clone; the protocol already bounded the two records to ±0.005. |
+| 2026-09-24 | Show explanation-gate status and meaning, but no feature importance, in Phase 2. | The committed gate report contains diagnostics only; ten development rows cannot support a global ranking, and attribution views belong to Phase 4. |
+| 2026-09-24 | Add a separate pinned dashboard lock and a loopback-only, telemetry-free Streamlit configuration, re-checked at startup. | Adds Streamlit without changing workbench or reproduction pins. Streamlit reads its config only from the working directory, so the app refuses to render when bound beyond loopback or with telemetry enabled. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -206,8 +213,11 @@ Before finishing:
 
 ## Next session
 
-1. Transfer and push the Phase 1 closure evidence commit.
-2. Implement Phase 2 evidence mode with Overview, Binary detection, Attack
-   families, and Provenance pages.
-3. Keep Phase 2 runnable from a clean clone without datasets or local model
-   artifacts.
+1. Review branch `cids-v2.1-phase2`, push it, and confirm all four GitHub Actions
+   jobs pass (including the repaired Python 3.11 `test` job) before merging.
+2. Open the dashboard locally and repeat the visual check in `docs/dashboard.md`
+   on your own browser; degraded states were exercised only through `AppTest`.
+3. Decide whether to commit the Apple Silicon reproduction selection record as
+   verifiable evidence (its digest is already recorded by the official run).
+4. Design Phase 3: CLI model-pack registration, bounded CSV upload, and
+   independent binary/multiclass scoring behind the Phase 1 contracts.
