@@ -37,7 +37,7 @@ or representative of modern traffic.
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
-| Automated tests | Passing locally on Python 3.11 and 3.12.14 (workbench and dashboard locks). The Python 3.11 `test` job had failed on `main` since Phase 1 because two model-pack tests depended on the host interpreter; fixed on the Phase 2 branch, pending confirmation in GitHub Actions |
+| Automated tests | All four GitHub Actions jobs (`test` on Python 3.11, `reproduction-environment`, `workbench-phase-1`, `dashboard-phase-2`) passed on merge commit `9d72ad1`, including the repaired Python 3.11 `test` job. Independent verification: base environment 180 passed, 3 skipped; complete dashboard environment 224 passed; `pip check` passed |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
@@ -53,9 +53,9 @@ or representative of modern traffic.
 | Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
 | Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
-| v2.1 dashboard | Phase 2 evidence mode implemented on branch `cids-v2.1-phase2`; see `docs/dashboard.md` |
+| v2.1 dashboard | Phase 2 evidence mode merged to `main` by PR #1 at `9d72ad1`; see `docs/dashboard.md`. Streamlit server health check passed with the server bound to `127.0.0.1` |
 | Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
-| Next milestone | Merge Phase 2, then design and implement Phase 3 trusted local inference |
+| Next milestone | Phase 3A: trusted local final-model-pack registration and preflight |
 
 ## Release roadmap
 
@@ -111,7 +111,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–2 complete; Phase 3 next**
+Status: **Phases 1–2 complete; Phase 3A next**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -129,7 +129,9 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Phase 2: implement the evidence-first Streamlit pages.
 - [ ] Phase 3: implement trusted local inference, review, and safe export.
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
-- [ ] Phase 5: add pinned dashboard dependencies, Docker, and release checks.
+- [ ] Phase 5: add Docker, non-root packaging, container health checks, and
+      release checks (the pinned dashboard lock and Streamlit `AppTest` coverage
+      already shipped in Phase 2).
 
 Exit criteria: a reviewer can run the dashboard locally, analyze safe sample
 data, understand why detections occurred, and inspect false positives.
@@ -213,11 +215,18 @@ Before finishing:
 
 ## Next session
 
-1. Review branch `cids-v2.1-phase2`, push it, and confirm all four GitHub Actions
-   jobs pass (including the repaired Python 3.11 `test` job) before merging.
-2. Open the dashboard locally and repeat the visual check in `docs/dashboard.md`
-   on your own browser; degraded states were exercised only through `AppTest`.
-3. Decide whether to commit the Apple Silicon reproduction selection record as
-   verifiable evidence (its digest is already recorded by the official run).
-4. Design Phase 3: CLI model-pack registration, bounded CSV upload, and
-   independent binary/multiclass scoring behind the Phase 1 contracts.
+1. Design and implement v2.1 Phase 3A: CLI-only registration of the maintainer's
+   trusted v2.0 final artifacts into an app-controlled local model pack,
+   anchored to the committed gate evidence and verified by the existing
+   preflight. No inference, upload, or UI work belongs to Phase 3A.
+2. Optional maintainer check: open the dashboard locally and repeat the visual
+   check in `docs/dashboard.md` in your own browser; degraded states were
+   exercised only through `AppTest`.
+3. Optional evidence, not a Phase 3 blocker: the Apple Silicon reproduction
+   selection record. Commit it only if the exact original file exists and its
+   canonical digest equals the `reproduction_selection_sha256` already recorded
+   by the official run (`90439d17…`). Never reconstruct or regenerate it. On
+   2026-10-01 the original file was located in the maintainer's original local
+   working clone and its canonical digest matched; it remains uncommitted
+   because committing it would also require pinning it and deciding whether
+   the dashboard should display it.
