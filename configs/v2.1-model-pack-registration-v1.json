@@ -1,0 +1,26 @@
+{
+  "deserialization": "forbidden_during_registration",
+  "manifest_version": "cids-trusted-model-pack-v1",
+  "pack": {
+    "artifact_filenames": {
+      "binary": "binary.joblib",
+      "multiclass": "multiclass.joblib"
+    },
+    "default_root": "artifacts/v2.1/model-packs",
+    "directory_name": "model_pack_id",
+    "manifest_filename": "manifest.json",
+    "max_artifact_bytes": 268435456
+  },
+  "policy_version": "cids-model-pack-registration-v1",
+  "provenance_type": "maintainer_final_v2",
+  "trust": {
+    "confirmation_phrase": "REGISTER_TRUSTED_LOCAL_V2_MODEL_PACK",
+    "method": "explicit_local_cli"
+  },
+  "trust_anchor": {
+    "artifact_digest_field": "tasks.<task>.artifact_sha256",
+    "gate_report_sha256": "d6db9aae2368b09b33b22a666d67208e27f28c277a5e613b07aed12e0551f528",
+    "gate_version": "cids-shap-compatibility-gate-v2",
+    "source": "accepted_explanation_gate"
+  }
+}

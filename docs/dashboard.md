@@ -181,7 +181,8 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 ## Known limitations
 
 - Evidence mode only. No trusted inference, upload, review queue, or export
-  (Phase 3).
+  (Phases 3B–3D). Phase 3A adds only command-line model-pack registration,
+  which the dashboard cannot reach.
 - No feature attributions. The gate report stores diagnostics only; global and
   per-record explanations are Phase 4.
 - The official-test report records artifact filenames but not artifact hashes;

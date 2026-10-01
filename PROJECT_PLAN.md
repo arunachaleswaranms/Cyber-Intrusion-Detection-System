@@ -37,7 +37,7 @@ or representative of modern traffic.
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
-| Automated tests | Passing locally on Python 3.11 and 3.12.14 (workbench and dashboard locks). The Python 3.11 `test` job had failed on `main` since Phase 1 because two model-pack tests depended on the host interpreter; fixed on the Phase 2 branch, pending confirmation in GitHub Actions |
+| Automated tests | All four GitHub Actions jobs (`test` on Python 3.11, `reproduction-environment`, `workbench-phase-1`, `dashboard-phase-2`) passed on merge commit `9d72ad1`, including the repaired Python 3.11 `test` job. Independent verification: base environment 180 passed, 3 skipped; complete dashboard environment 224 passed; `pip check` passed |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
@@ -53,9 +53,10 @@ or representative of modern traffic.
 | Official test state | Evaluated once on 2026-09-12; results frozen and preserved |
 | Binary official-test result | Macro F1 0.8663; balanced accuracy 0.8595; FPR 0.2689 |
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
-| v2.1 dashboard | Phase 2 evidence mode implemented on branch `cids-v2.1-phase2`; see `docs/dashboard.md` |
+| v2.1 dashboard | Phase 2 evidence mode merged to `main` by PR #1 at `9d72ad1`; see `docs/dashboard.md`. Streamlit server health check passed with the server bound to `127.0.0.1` |
 | Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
-| Next milestone | Merge Phase 2, then design and implement Phase 3 trusted local inference |
+| v2.1 model pack | Phase 3A CLI registration and hardened preflight implemented on branch `cids-v2.1-phase3a-model-pack`; see `docs/model-pack-registration.md`. On 2026-10-01 the original final artifacts registered on the Apple Silicon Mac as local, uncommitted pack `e2d4f329…2b18`, which passed preflight. No inference exists |
+| Next milestone | Phase 3B: verified deserialization and framework-independent inference |
 
 ## Release roadmap
 
@@ -111,7 +112,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–2 complete; Phase 3 next**
+Status: **Phases 1–2 and 3A complete; Phase 3B next**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -127,9 +128,16 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Phase 1: pass representative binary and multiclass SHAP integration tests.
 - [x] Phase 1: complete the pinned SHAP compatibility/correctness/performance spike.
 - [x] Phase 2: implement the evidence-first Streamlit pages.
-- [ ] Phase 3: implement trusted local inference, review, and safe export.
+- [x] Phase 2 state cleanup: record the merge, CI results, and next milestone.
+- Phase 3: trusted local inference, review, and safe export, in four steps:
+  - [x] Phase 3A: trusted final-model-pack registration and preflight.
+  - [ ] Phase 3B: verified deserialization and framework-independent inference.
+  - [ ] Phase 3C: bounded CSV analysis UI and review queue.
+  - [ ] Phase 3D: label-backed review, threshold simulation, and safe export.
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
-- [ ] Phase 5: add pinned dashboard dependencies, Docker, and release checks.
+- [ ] Phase 5: add Docker, non-root packaging, container health checks, and
+      release checks (the pinned dashboard lock and Streamlit `AppTest` coverage
+      already shipped in Phase 2).
 
 Exit criteria: a reviewer can run the dashboard locally, analyze safe sample
 data, understand why detections occurred, and inspect false positives.
@@ -192,6 +200,11 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-09-24 | Compare validation and official-test metrics using the committed frozen selection record, labelled with its stage and the refit caveat. | The Apple Silicon reproduction record quoted in the results document is not committed and cannot be verified by a clean clone; the protocol already bounded the two records to ±0.005. |
 | 2026-09-24 | Show explanation-gate status and meaning, but no feature importance, in Phase 2. | The committed gate report contains diagnostics only; ten development rows cannot support a global ranking, and attribution views belong to Phase 4. |
 | 2026-09-24 | Add a separate pinned dashboard lock and a loopback-only, telemetry-free Streamlit configuration, re-checked at startup. | Adds Streamlit without changing workbench or reproduction pins. Streamlit reads its config only from the working directory, so the app refuses to render when bound beyond loopback or with telemetry enabled. |
+| 2026-10-01 | Split Phase 3 into 3A registration, 3B verified loading and inference, 3C CSV analysis UI, and 3D label-backed review and export. | Isolates the riskiest step, accepting executable local artifacts, so it can be verified before any code deserializes or presents model output. |
+| 2026-10-01 | Register `maintainer_final_v2` packs only through a CLI that requires an exact confirmation phrase and source digests equal to the selected-artifact digests in the checksum-verified gate evidence. | The gate already examined these exact artifacts. Reading the digests through the verified loader avoids a second copy of them. The browser can never register, select, upload, or trust a model. |
+| 2026-10-01 | Never deserialize during registration; copy under app-owned names into a private staging directory, then claim `<model_pack_id>` with an exclusive `mkdir` and rename onto it only after the manifest and preflight pass. | A hash does not make a pickle safe. Fixed names and an exclusive claim prevent path injection and overwrites. Cleanup removes only the files the registrar created, followed by a non-recursive `rmdir`, so a failure cannot delete unrelated data or leave a trusted-looking pack. |
+| 2026-10-01 | Keep manifest schema `cids-trusted-model-pack-v1`. Define `creation_config_sha256` as the pinned canonical digest of the versioned registration policy, and tighten preflight. | The v1 schema was sufficient. The policy digest is host-independent and binds the phrase, anchor, filenames, and limits. The tightened preflight checks the directory name against the ID, fixed filenames, UTC timestamps, the size limit, the gate anchor, and the policy digest; no pack existed under the looser checks. |
+| 2026-10-01 | Leave post-deserialization validation to Phase 3B. | Phase 3A never deserializes, so it cannot validate object type, fitted state, or internal metadata; 3B must do so immediately after `joblib.load` on a preflighted pack. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -213,11 +226,20 @@ Before finishing:
 
 ## Next session
 
-1. Review branch `cids-v2.1-phase2`, push it, and confirm all four GitHub Actions
-   jobs pass (including the repaired Python 3.11 `test` job) before merging.
-2. Open the dashboard locally and repeat the visual check in `docs/dashboard.md`
-   on your own browser; degraded states were exercised only through `AppTest`.
-3. Decide whether to commit the Apple Silicon reproduction selection record as
-   verifiable evidence (its digest is already recorded by the official run).
-4. Design Phase 3: CLI model-pack registration, bounded CSV upload, and
-   independent binary/multiclass scoring behind the Phase 1 contracts.
+1. Design and implement v2.1 Phase 3B: load only a preflighted pack, validate
+   the deserialized artifact type, fitted state, and internal metadata against
+   the manifest and frozen contracts, and add framework-independent binary and
+   multiclass scoring outside Streamlit. Hash the exact bytes that are
+   deserialized rather than reopening a path that was hashed earlier. Do not
+   start the CSV UI (3C) or review and export (3D) until 3B is verified.
+2. Optional maintainer check: open the dashboard locally and repeat the visual
+   check in `docs/dashboard.md` in your own browser; degraded states were
+   exercised only through `AppTest`.
+3. Optional evidence, not a Phase 3 blocker: the Apple Silicon reproduction
+   selection record. Commit it only if the exact original file exists and its
+   canonical digest equals the `reproduction_selection_sha256` already recorded
+   by the official run (`90439d17…`). Never reconstruct or regenerate it. On
+   2026-10-01 the original file was located in the maintainer's original local
+   working clone and its canonical digest matched; it remains uncommitted
+   because committing it would also require pinning it and deciding whether
+   the dashboard should display it.
