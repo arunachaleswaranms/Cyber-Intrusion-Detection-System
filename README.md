@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 complete; Phase 3A next |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 and 3A complete; Phase 3B next |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -28,7 +28,8 @@ bounded model-agnostic fallback in
 both original local artifacts and accepted. The preserved gate evidence is in
 [`results/v2.1`](results/v2.1); see
 [`docs/shap-compatibility-gate.md`](docs/shap-compatibility-gate.md) for limits.
-Phase 2 adds the evidence-first Streamlit dashboard described below.
+Phase 2 adds the evidence-first Streamlit dashboard described below. Phase 3A
+adds command-line registration of the trusted local v2.0 model pack.
 
 ## Evidence dashboard (v2.1 Phase 2)
 
@@ -52,6 +53,29 @@ evidence provenance. Global feature importance is **not** shown: the committed
 gate report contains correctness diagnostics only, and attribution views are
 scheduled for Phase 4. See [`docs/dashboard.md`](docs/dashboard.md) for evidence
 sources, degraded states, validation, and limitations.
+
+## Trusted model-pack registration (v2.1 Phase 3A)
+
+The maintainer can register the original, uncommitted v2.0 final artifacts as
+an app-controlled local model pack. Registration is command-line only. It
+accepts each source only if its SHA-256 equals the digest recorded by the
+committed, checksum-verified explanation gate. It copies the files without
+deserializing them and verifies the finished pack with the existing preflight.
+Run it in the pinned Python 3.12.14 workbench environment:
+
+```bash
+PYTHONPATH=src python -m cids.experiments.register_model_pack \
+  --binary-artifact artifacts/v2/official-test-v1/binary-hist_gradient_boosting.joblib \
+  --multiclass-artifact artifacts/v2/official-test-v1/multiclass-hist_gradient_boosting.joblib \
+  --pack-root artifacts/v2.1/model-packs \
+  --confirm REGISTER_TRUSTED_LOCAL_V2_MODEL_PACK
+```
+
+Joblib is pickle-based: a matching hash does not make an untrusted file safe.
+Packs are written under the ignored `artifacts/v2.1/model-packs/` and never
+committed. **Inference does not exist yet**; verified loading and scoring are
+Phase 3B. See [`docs/model-pack-registration.md`](docs/model-pack-registration.md)
+for the trust boundary, checks, manifest, preflight, and manual removal.
 
 ## Current v2.0 capabilities
 
