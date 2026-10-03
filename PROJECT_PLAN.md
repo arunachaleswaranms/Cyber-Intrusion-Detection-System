@@ -38,6 +38,7 @@ or representative of modern traffic.
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
 | Automated tests | All four GitHub Actions jobs (`test` on Python 3.11, `reproduction-environment`, `workbench-phase-1`, `dashboard-phase-2`) passed on merge commit `9d72ad1`, including the repaired Python 3.11 `test` job. Independent verification: base environment 180 passed, 3 skipped; complete dashboard environment 224 passed; `pip check` passed |
+| Phase 3B local verification | Base 247 passed, 34 skipped (30 pinned-runtime tests, 2 SHAP and 2 Streamlit); reproduction 277 passed, 4 skipped (2 SHAP and 2 Streamlit); workbench 286 passed, 2 skipped (Streamlit); dashboard 322 passed. The ignored real pack passed 16 checksum-verified training rows. Dashboard `pip check`, all four environment dependency checks, and `git diff --check` passed |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
 | Split policy | Deterministic, target-aware, duplicate-safe v1 |
@@ -55,8 +56,8 @@ or representative of modern traffic.
 | Multiclass official-test result | Macro F1 0.5029; balanced accuracy 0.5761 |
 | v2.1 dashboard | Phase 2 evidence mode merged to `main` by PR #1 at `9d72ad1`; see `docs/dashboard.md`. Streamlit server health check passed with the server bound to `127.0.0.1` |
 | Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
-| v2.1 model pack | Phase 3A CLI registration and hardened preflight implemented on branch `cids-v2.1-phase3a-model-pack`; see `docs/model-pack-registration.md`. On 2026-10-01 the original final artifacts registered on the Apple Silicon Mac as local, uncommitted pack `e2d4f329…2b18`, which passed preflight. No inference exists |
-| Next milestone | Phase 3B: verified deserialization and framework-independent inference |
+| v2.1 model pack | Phase 3A registration and Phase 3B verified loading/inference implemented. The ignored local pack `e2d4f329…2b18` passed exact-buffer loading and bounded inference on 16 checksum-verified training-partition rows; no official-test data or metrics were accessed. No dashboard inference/upload UI exists |
+| Next milestone | Phase 3C: bounded CSV analysis UI and review queue |
 
 ## Release roadmap
 
@@ -112,7 +113,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–2 and 3A complete; Phase 3B next**
+Status: **Phases 1–2, 3A, and 3B complete; Phase 3C next**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -131,7 +132,7 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Phase 2 state cleanup: record the merge, CI results, and next milestone.
 - Phase 3: trusted local inference, review, and safe export, in four steps:
   - [x] Phase 3A: trusted final-model-pack registration and preflight.
-  - [ ] Phase 3B: verified deserialization and framework-independent inference.
+  - [x] Phase 3B: verified deserialization and framework-independent inference.
   - [ ] Phase 3C: bounded CSV analysis UI and review queue.
   - [ ] Phase 3D: label-backed review, threshold simulation, and safe export.
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
@@ -205,6 +206,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-10-01 | Never deserialize during registration; copy under app-owned names into a private staging directory, then claim `<model_pack_id>` with an exclusive `mkdir` and rename onto it only after the manifest and preflight pass. | A hash does not make a pickle safe. Fixed names and an exclusive claim prevent path injection and overwrites. Cleanup removes only the files the registrar created, followed by a non-recursive `rmdir`, so a failure cannot delete unrelated data or leave a trusted-looking pack. |
 | 2026-10-01 | Keep manifest schema `cids-trusted-model-pack-v1`. Define `creation_config_sha256` as the pinned canonical digest of the versioned registration policy, and tighten preflight. | The v1 schema was sufficient. The policy digest is host-independent and binds the phrase, anchor, filenames, and limits. The tightened preflight checks the directory name against the ID, fixed filenames, UTC timestamps, the size limit, the gate anchor, and the policy digest; no pack existed under the looser checks. |
 | 2026-10-01 | Leave post-deserialization validation to Phase 3B. | Phase 3A never deserializes, so it cannot validate object type, fitted state, or internal metadata; 3B must do so immediately after `joblib.load` on a preflighted pack. |
+| 2026-10-02 | Accept only gate-anchored final packs for Phase 3B loading; hash bounded bytes and deserialize that same buffer. | Preflight and post-load validation bind executable local artifacts to the frozen task, schema, model, metadata, class order, and runtime. The real pack passed a bounded inference check on verified training rows without official-test access. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -226,12 +228,9 @@ Before finishing:
 
 ## Next session
 
-1. Design and implement v2.1 Phase 3B: load only a preflighted pack, validate
-   the deserialized artifact type, fitted state, and internal metadata against
-   the manifest and frozen contracts, and add framework-independent binary and
-   multiclass scoring outside Streamlit. Hash the exact bytes that are
-   deserialized rather than reopening a path that was hashed earlier. Do not
-   start the CSV UI (3C) or review and export (3D) until 3B is verified.
+1. Implement v2.1 Phase 3C: integrate the existing bounded CSV input contract
+   and verified inference service into a local dashboard analysis and review
+   queue. Keep Phase 3D label-backed review and export separate.
 2. Optional maintainer check: open the dashboard locally and repeat the visual
    check in `docs/dashboard.md` in your own browser; degraded states were
    exercised only through `AppTest`.
