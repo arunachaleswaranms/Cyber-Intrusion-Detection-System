@@ -238,9 +238,13 @@ inspecting it. Never run this with an empty or wildcard ID.
 ## Phase 3B loading boundary
 
 - `load_model_pack()` calls `preflight_model_pack()` immediately before loading.
-- It reads each artifact into a bounded memory buffer, compares that buffer's
-  byte count and SHA-256 with the preflighted manifest, then deserializes that
-  same buffer. File replacement after preflight fails before deserialization.
+- It opens each artifact through a non-following, nonblocking descriptor,
+  requires a regular file with the manifest size, and reads at most 256 MiB
+  through that descriptor. It checks device, inode, and size again after the
+  read, then compares the exact buffer's byte count and SHA-256 with the
+  preflighted manifest before deserializing that same buffer.
+- It verifies the canonical digest of the frozen experiment configuration
+  once before deserialization and uses that configuration for both tasks.
 - It validates exact final artifact types, task slots, fitted components, class
   order, parameters, runtime, and internal metadata. Both tasks must pass
   before a usable pack is returned.

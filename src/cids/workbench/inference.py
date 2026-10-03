@@ -9,6 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import io
+import math
+import numbers
+import os
+import stat
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -20,7 +24,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.utils.validation import check_is_fitted
 
-from cids.config import load_experiment_config
+from cids.config import config_sha256, load_experiment_config
 from cids.datasets.unsw_nb15 import (
     ATTACK_FAMILIES, ATTACK_FAMILY_COLUMN, BINARY_LABEL_COLUMN,
     CATEGORICAL_FEATURES, FEATURE_COLUMNS, ID_COLUMN, NUMERIC_FEATURES,
@@ -65,7 +69,7 @@ class LoadedModelPack:
             raise InferenceError("model pack must come from verified loading")
 
 
-def _validate_loaded(artifact: object, task: str, manifest: dict) -> FinalModelArtifact:
+def _validate_loaded(artifact: object, task: str, manifest: dict, config: dict) -> FinalModelArtifact:
     if type(artifact) is not FinalModelArtifact:
         raise InferenceError(f"{task} has the wrong artifact type")
     if artifact.task != task:
@@ -104,6 +108,19 @@ def _validate_loaded(artifact: object, task: str, manifest: dict) -> FinalModelA
         ).get_params(deep=False)
     ):
         raise InferenceError(f"{task} preprocessor configuration mismatch")
+    metadata = artifact.metadata
+    pre = artifact.preprocessor.metadata
+    if type(metadata) is not dict or type(pre) is not dict:
+        raise InferenceError(f"{task} metadata is malformed")
+    for key in ("development_training_rows", "official_test_rows"):
+        if type(metadata.get(key)) is not int or metadata[key] <= 0:
+            raise InferenceError(f"{task} {key} is invalid")
+    for key in ("source_training_rows", "training_rows", "input_feature_count", "output_feature_count"):
+        if type(pre.get(key)) is not int or pre[key] <= 0:
+            raise InferenceError(f"{task} preprocessor {key} is invalid")
+    duration = metadata.get("fit_seconds")
+    if isinstance(duration, bool) or not isinstance(duration, numbers.Real) or not math.isfinite(duration) or duration < 0:
+        raise InferenceError(f"{task} fit duration is invalid")
     try:
         validate_artifact(artifact)
         validate_preprocessor(artifact.preprocessor)
@@ -112,22 +129,19 @@ def _validate_loaded(artifact: object, task: str, manifest: dict) -> FinalModelA
     except (ValueError, TypeError, AttributeError) as exc:
         raise InferenceError(f"{task} artifact is invalid or unfitted") from exc
 
-    metadata = artifact.metadata
-    if type(metadata) is not dict or type(artifact.preprocessor.metadata) is not dict:
-        raise InferenceError(f"{task} metadata is malformed")
     required = {
         "artifact_version": artifact.version,
         "source_artifact_version": MODEL_ARTIFACT_VERSION,
         **{key: contracts[key] for key in EXPECTED_CONTRACTS_BASE if key != "preprocessor_version"},
         "task": task,
         "model_name": artifact.model_name,
-        "split_policy_version": load_experiment_config()["split"]["policy_version"],
-        "seed": load_experiment_config()["split"]["seed"],
+        "split_policy_version": config["split"]["policy_version"],
+        "seed": config["split"]["seed"],
         "estimator_class": type(artifact.estimator).__name__,
         "training_scope": "prepared_train_plus_validation",
         "official_test_status": "evaluated_once",
         "library_versions": EXPECTED_RUNTIME["libraries"],
-        "preprocessor": artifact.preprocessor.metadata,
+        "preprocessor": pre,
     }
     if any(metadata.get(key) != value for key, value in required.items()):
         raise InferenceError(f"{task} internal metadata or manifest mismatch")
@@ -137,10 +151,9 @@ def _validate_loaded(artifact: object, task: str, manifest: dict) -> FinalModelA
     }
     if set(metadata) != expected_keys:
         raise InferenceError(f"{task} metadata fields mismatch")
-    expected_params = build_estimator("hist_gradient_boosting", load_experiment_config()["models"]["supervised"]["hist_gradient_boosting"], metadata["seed"]).get_params(deep=False)
+    expected_params = build_estimator("hist_gradient_boosting", config["models"]["supervised"]["hist_gradient_boosting"], config["split"]["seed"]).get_params(deep=False)
     if artifact.estimator.get_params(deep=False) != expected_params or metadata["estimator_parameters"] != expected_params:
         raise InferenceError(f"{task} estimator parameters mismatch")
-    pre = artifact.preprocessor.metadata
     expected_pre = {
         "preprocessor_version": contracts["preprocessor_version"],
         "schema_version": contracts["schema_version"],
@@ -157,8 +170,6 @@ def _validate_loaded(artifact: object, task: str, manifest: dict) -> FinalModelA
         raise InferenceError(f"{task} preprocessor metadata mismatch")
     if set(pre) != set(expected_pre) | {"output_feature_count", "output_feature_names_sha256", "categorical_vocabulary_sizes"}:
         raise InferenceError(f"{task} preprocessor metadata fields mismatch")
-    if not isinstance(pre["output_feature_count"], int) or pre["output_feature_count"] <= 0:
-        raise InferenceError(f"{task} output feature count is invalid")
     if pre["output_feature_count"] != len(transformer.get_feature_names_out()):
         raise InferenceError(f"{task} transformed feature count mismatch")
     encoder = transformer.named_transformers_["categorical"]
@@ -175,25 +186,47 @@ def _validate_loaded(artifact: object, task: str, manifest: dict) -> FinalModelA
     expected_classes = (0, 1) if task == "binary" else tuple(sorted(ATTACK_FAMILIES))
     if tuple(artifact.estimator.classes_) != expected_classes:
         raise InferenceError(f"{task} class order mismatch")
-    for key in ("development_training_rows", "official_test_rows"):
-        if type(metadata[key]) is not int or metadata[key] <= 0:
-            raise InferenceError(f"{task} {key} is invalid")
     for key in ("development_training_id_sha256", "official_test_id_sha256"):
         if not _is_sha256(metadata[key]):
             raise InferenceError(f"{task} {key} is invalid")
-    if not np.isfinite(metadata["fit_seconds"]) or metadata["fit_seconds"] < 0:
-        raise InferenceError(f"{task} fit duration is invalid")
     return artifact
 
 
 def _read_verified_bytes(path: Path, spec: dict) -> bytes:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     try:
-        with path.open("rb") as stream:
-            payload = stream.read(MAX_ARTIFACT_BYTES + 1)
-            if len(payload) > MAX_ARTIFACT_BYTES or stream.read(1):
-                raise InferenceError("artifact exceeds the 256 MiB limit")
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise InferenceError("artifact could not be opened safely") from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise InferenceError("artifact is not a regular file")
+        if not 0 < before.st_size <= MAX_ARTIFACT_BYTES or before.st_size != spec["size_bytes"]:
+            raise InferenceError("artifact size changed after preflight")
+        identity = (before.st_dev, before.st_ino, before.st_size)
+        chunks = []
+        total = 0
+        while total < before.st_size:
+            chunk = os.read(descriptor, min(1024 * 1024, before.st_size - total))
+            if not chunk:
+                break
+            total += len(chunk)
+            chunks.append(chunk)
+        after = os.fstat(descriptor)
+        if (after.st_dev, after.st_ino, after.st_size) != identity:
+            raise InferenceError("artifact changed during read")
+        current_path = os.stat(path, follow_symlinks=False)
+        if not stat.S_ISREG(current_path.st_mode) or (current_path.st_dev, current_path.st_ino, current_path.st_size) != identity:
+            raise InferenceError("artifact path changed during read")
+        payload = b"".join(chunks)
     except OSError as exc:
         raise InferenceError("artifact could not be read") from exc
+    finally:
+        try:
+            os.close(descriptor)
+        except OSError as exc:
+            raise InferenceError("artifact descriptor could not be closed") from exc
     if len(payload) != spec["size_bytes"] or hashlib.sha256(payload).hexdigest() != spec["sha256"]:
         raise InferenceError("artifact changed after preflight")
     return payload
@@ -201,9 +234,21 @@ def _read_verified_bytes(path: Path, spec: dict) -> bytes:
 
 def load_model_pack(pack_dir: str | Path) -> LoadedModelPack:
     """Preflight, hash exact bounded bytes, deserialize, and validate both tasks."""
-    verified = preflight_model_pack(pack_dir)
+    try:
+        verified = preflight_model_pack(pack_dir)
+    except ModelPackError:
+        raise
+    except Exception as exc:
+        raise ModelPackError("model-pack preflight failed") from exc
     if verified.manifest["provenance_type"] != "maintainer_final_v2":
         raise ModelPackError("only accepted maintainer final artifacts may be loaded")
+    try:
+        config = load_experiment_config()
+        digest = config_sha256(config)
+    except Exception as exc:
+        raise InferenceError("frozen experiment configuration is invalid") from exc
+    if digest != verified.manifest["contracts"]["experiment_config_sha256"]:
+        raise InferenceError("frozen experiment configuration digest mismatch")
     loaded = {}
     digests = set()
     for task in ("binary", "multiclass"):
@@ -216,7 +261,12 @@ def load_model_pack(pack_dir: str | Path) -> LoadedModelPack:
             artifact = joblib.load(io.BytesIO(payload))
         except Exception as exc:
             raise InferenceError(f"{task} artifact could not be deserialized") from exc
-        loaded[task] = _validate_loaded(artifact, task, verified.manifest)
+        try:
+            loaded[task] = _validate_loaded(artifact, task, verified.manifest, config)
+        except InferenceError:
+            raise
+        except Exception as exc:
+            raise InferenceError(f"{task} artifact validation failed") from exc
     return LoadedModelPack(
         verified.manifest["model_pack_id"],
         loaded["binary"],

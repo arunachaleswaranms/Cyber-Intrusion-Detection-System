@@ -1,10 +1,13 @@
 """Phase 3B synthetic security tests; no official-test records or metrics."""
 
 import ast
+import copy
 import hashlib
 import io
 import json
 import os
+import signal
+import stat
 import sys
 from pathlib import Path
 
@@ -22,6 +25,7 @@ from cids.final_evaluation import FINAL_MODEL_ARTIFACT_VERSION, FinalModelArtifa
 from cids.modeling.supervised import MODEL_ARTIFACT_VERSION, build_estimator, model_features_for_estimator  # noqa: E402
 from cids.preprocessing import fit_preprocessor, transform_partition  # noqa: E402
 from cids.workbench import model_pack  # noqa: E402
+from cids.workbench import inference  # noqa: E402
 from cids.workbench.contracts import parse_inference_csv  # noqa: E402
 from cids.workbench.inference import InferenceError, LoadedModelPack, infer, load_model_pack  # noqa: E402
 from cids.workbench.registration import build_maintainer_final_manifest  # noqa: E402
@@ -143,17 +147,23 @@ def test_rejects_wrong_artifact_fields(tmp_path, monkeypatch, artifacts, task, f
 ])
 def test_rejects_mutated_internal_contract(tmp_path, monkeypatch, artifacts, mutation):
     mutation(artifacts["binary"])
-    with pytest.raises((InferenceError, TypeError, AttributeError)):
+    with pytest.raises(InferenceError):
         load_model_pack(pack_directory(tmp_path, monkeypatch, artifacts))
 
 
 def test_exact_bytes_checked_again_after_preflight(tmp_path, monkeypatch, artifacts):
     root = pack_directory(tmp_path, monkeypatch, artifacts)
     original = model_pack.preflight_model_pack
-    from cids.workbench import inference
     def replace_after_preflight(path):
         verified = original(path)
-        (root / "binary.joblib").write_bytes(b"replaced")
+        target = root / "binary.joblib"
+        original_inode = target.stat().st_ino
+        changed = bytearray(target.read_bytes())
+        changed[0] ^= 1
+        replacement = root / "replacement.joblib"
+        replacement.write_bytes(changed)
+        replacement.replace(target)
+        assert target.stat().st_ino != original_inode
         return verified
     monkeypatch.setattr(inference, "preflight_model_pack", replace_after_preflight)
     monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized mismatched bytes"))
@@ -161,10 +171,164 @@ def test_exact_bytes_checked_again_after_preflight(tmp_path, monkeypatch, artifa
         load_model_pack(root)
 
 
-def test_no_partial_pack_on_second_task_failure(tmp_path, monkeypatch, artifacts):
-    artifacts["multiclass"].metadata["official_test_status"] = "sealed"
+@pytest.mark.parametrize("replacement", ["symlink", "fifo", "directory"])
+def test_nonregular_replacement_after_preflight(tmp_path, monkeypatch, artifacts, replacement):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    original = model_pack.preflight_model_pack
+    def replace_after_preflight(path):
+        verified = original(path)
+        target = root / "binary.joblib"
+        target.unlink()
+        if replacement == "symlink":
+            target.symlink_to(root / "multiclass.joblib")
+        elif replacement == "fifo":
+            os.mkfifo(target)
+        else:
+            target.mkdir()
+        return verified
+    monkeypatch.setattr(inference, "preflight_model_pack", replace_after_preflight)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized nonregular artifact"))
+    if replacement == "fifo":
+        previous = signal.signal(signal.SIGALRM, lambda *_: pytest.fail("FIFO load blocked"))
+        signal.setitimer(signal.ITIMER_REAL, 5)
+    try:
+        with pytest.raises(InferenceError):
+            load_model_pack(root)
+    finally:
+        if replacement == "fifo":
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous)
+
+
+def test_socket_mode_rejected_before_deserialization(tmp_path, monkeypatch, artifacts):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    original = os.fstat
+    def socket_fstat(descriptor):
+        found = original(descriptor)
+        return os.stat_result((stat.S_IFSOCK, *tuple(found)[1:]))
+    monkeypatch.setattr(inference.os, "fstat", socket_fstat)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized socket"))
+    with pytest.raises(InferenceError, match="regular file"):
+        load_model_pack(root)
+
+
+def test_oversized_replacement_after_preflight(tmp_path, monkeypatch, artifacts):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    original = model_pack.preflight_model_pack
+    def enlarge_after_preflight(path):
+        verified = original(path)
+        with (root / "binary.joblib").open("r+b") as stream:
+            stream.truncate(model_pack.MAX_ARTIFACT_BYTES + 1)
+        return verified
+    monkeypatch.setattr(inference, "preflight_model_pack", enlarge_after_preflight)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized oversized artifact"))
+    with pytest.raises(InferenceError, match="size changed"):
+        load_model_pack(root)
+
+
+def test_unreadable_artifact_after_preflight(tmp_path, monkeypatch, artifacts):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    original_open = os.open
+    def deny_binary(path, flags, *args, **kwargs):
+        if Path(path).name == "binary.joblib":
+            raise PermissionError("denied")
+        return original_open(path, flags, *args, **kwargs)
+    monkeypatch.setattr(inference.os, "open", deny_binary)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized unreadable artifact"))
+    with pytest.raises(InferenceError, match="opened safely"):
+        load_model_pack(root)
+
+
+def test_size_change_during_descriptor_read(tmp_path, monkeypatch, artifacts):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    original_read = os.read
+    changed = False
+    def change_after_read(descriptor, count):
+        nonlocal changed
+        chunk = original_read(descriptor, count)
+        if not changed:
+            changed = True
+            with (root / "binary.joblib").open("ab") as stream:
+                stream.write(b"x")
+        return chunk
+    monkeypatch.setattr(inference.os, "read", change_after_read)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized changing artifact"))
+    with pytest.raises(InferenceError, match="changed during read"):
+        load_model_pack(root)
+
+
+def test_path_identity_change_during_descriptor_read(tmp_path, monkeypatch, artifacts):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    original_read = os.read
+    changed = False
+    def replace_after_read(descriptor, count):
+        nonlocal changed
+        chunk = original_read(descriptor, count)
+        if not changed:
+            changed = True
+            target = root / "binary.joblib"
+            payload = target.read_bytes()
+            target.rename(root / "previous.joblib")
+            target.write_bytes(payload)
+        return chunk
+    monkeypatch.setattr(inference.os, "read", replace_after_read)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized replaced artifact"))
+    with pytest.raises(InferenceError, match="path changed during read"):
+        load_model_pack(root)
+
+
+def test_frozen_config_digest_checked_once_before_deserialization(tmp_path, monkeypatch, artifacts):
+    root = pack_directory(tmp_path, monkeypatch, artifacts)
+    changed = copy.deepcopy(load_experiment_config())
+    changed["split"]["seed"] += 1
+    calls = []
+    def load_changed():
+        calls.append(1)
+        return changed
+    monkeypatch.setattr(inference, "load_experiment_config", load_changed)
+    monkeypatch.setattr(joblib, "load", lambda *_: pytest.fail("deserialized under wrong config"))
+    with pytest.raises(InferenceError, match="digest mismatch"):
+        load_model_pack(root)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("duration", ["1.0", True, float("nan"), float("inf"), -1.0])
+def test_invalid_fit_seconds_has_project_error(tmp_path, monkeypatch, artifacts, duration):
+    artifacts["binary"].metadata["fit_seconds"] = duration
+    with pytest.raises(InferenceError, match="fit duration"):
+        load_model_pack(pack_directory(tmp_path, monkeypatch, artifacts))
+
+
+@pytest.mark.parametrize("value", [True, 0, -1, 1.5, "3"])
+def test_invalid_row_count_has_project_error(tmp_path, monkeypatch, artifacts, value):
+    artifacts["binary"].metadata["development_training_rows"] = value
+    with pytest.raises(InferenceError, match="development_training_rows"):
+        load_model_pack(pack_directory(tmp_path, monkeypatch, artifacts))
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda artifact: delattr(artifact.estimator, "classes_"),
+    lambda artifact: setattr(artifact.preprocessor, "metadata", None),
+    lambda artifact: artifact.preprocessor.metadata.pop("output_feature_count"),
+    lambda artifact: artifact.preprocessor.metadata.update(output_feature_count=True),
+])
+def test_malformed_component_has_project_error(tmp_path, monkeypatch, artifacts, mutation):
+    mutation(artifacts["binary"])
     with pytest.raises(InferenceError):
         load_model_pack(pack_directory(tmp_path, monkeypatch, artifacts))
+
+
+def test_no_partial_pack_on_second_task_failure(tmp_path, monkeypatch, artifacts):
+    artifacts["multiclass"].metadata["official_test_status"] = "sealed"
+    original = joblib.load
+    seen = []
+    def observed_load(stream):
+        seen.append(stream)
+        return original(stream)
+    monkeypatch.setattr(joblib, "load", observed_load)
+    with pytest.raises(InferenceError, match="multiclass"):
+        load_model_pack(pack_directory(tmp_path, monkeypatch, artifacts))
+    assert len(seen) == 2
 
 
 def test_rejects_wrong_artifact_type(tmp_path, monkeypatch, artifacts):
@@ -175,7 +339,7 @@ def test_rejects_wrong_artifact_type(tmp_path, monkeypatch, artifacts):
 
 def test_rejects_unfitted_preprocessor(tmp_path, monkeypatch, artifacts):
     del artifacts["binary"].preprocessor.transformer.transformers_
-    with pytest.raises((InferenceError, AttributeError)):
+    with pytest.raises(InferenceError):
         load_model_pack(pack_directory(tmp_path, monkeypatch, artifacts))
 
 
