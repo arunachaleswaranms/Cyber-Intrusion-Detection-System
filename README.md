@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 and 3A complete; Phase 3B next |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2, 3A, and 3B complete; Phase 3C next |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -29,7 +29,8 @@ both original local artifacts and accepted. The preserved gate evidence is in
 [`results/v2.1`](results/v2.1); see
 [`docs/shap-compatibility-gate.md`](docs/shap-compatibility-gate.md) for limits.
 Phase 2 adds the evidence-first Streamlit dashboard described below. Phase 3A
-adds command-line registration of the trusted local v2.0 model pack.
+adds command-line registration of the trusted local v2.0 model pack. Phase 3B
+adds verified deserialization and framework-independent inference.
 
 ## Evidence dashboard (v2.1 Phase 2)
 
@@ -73,9 +74,36 @@ PYTHONPATH=src python -m cids.experiments.register_model_pack \
 
 Joblib is pickle-based: a matching hash does not make an untrusted file safe.
 Packs are written under the ignored `artifacts/v2.1/model-packs/` and never
-committed. **Inference does not exist yet**; verified loading and scoring are
-Phase 3B. See [`docs/model-pack-registration.md`](docs/model-pack-registration.md)
+committed. See [`docs/model-pack-registration.md`](docs/model-pack-registration.md)
 for the trust boundary, checks, manifest, preflight, and manual removal.
+
+## Verified local inference (v2.1 Phase 3B)
+
+Use the pinned Python 3.12.14 workbench environment. A caller supplies a local,
+CLI-registered pack directory and bytes from a bounded feature CSV; no model
+upload or dashboard inference UI exists yet.
+
+```python
+from pathlib import Path
+from cids.workbench.contracts import parse_inference_csv
+from cids.workbench.inference import infer, load_model_pack
+
+pack = load_model_pack("artifacts/v2.1/model-packs/<model_pack_id>")
+data = parse_inference_csv(Path("my-development-features.csv").read_bytes())
+records = infer(pack, data)
+```
+
+Run this with `PYTHONPATH=src` from the repository root. The loader preflights
+the pack, reads each artifact into a bounded buffer, checks that buffer's exact
+size and SHA-256, deserializes the same bytes, and validates both fitted final
+artifacts before returning a pack. Joblib is executable trusted code; digest
+identity does not establish safety. Only the gate-anchored maintainer final
+artifacts are accepted. The service scores binary and multiclass models
+independently in batches, preserves supplied IDs and UTC timestamps, and emits
+`PredictionRecord` objects with uncalibrated model scores, queue bands, and
+`explanation_status="not_requested"`. These scores are not calibrated
+probabilities or production risk. Phase 3C will add the bounded CSV/dashboard
+integration; Phase 3D review and export have not started.
 
 ## Current v2.0 capabilities
 

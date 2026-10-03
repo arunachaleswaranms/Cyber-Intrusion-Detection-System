@@ -1,13 +1,13 @@
 # v2.1 trusted model-pack registration (Phase 3A)
 
-Status: **Implemented; registration and preflight only. Inference does not
-exist yet.**
+Status: **Phase 3A registration and preflight implemented; Phase 3B verified
+loading and inference implemented separately.**
 
 Phase 3A adds one command-line action. It registers the maintainer's original
 v2.0 final binary and multiclass artifacts into an app-controlled local model
 pack, then preflights the result. It does not load a model, make a
 prediction, accept an upload, or change the Streamlit dashboard. Verified
-deserialization and inference are Phase 3B.
+deserialization and inference are implemented in Phase 3B outside this CLI.
 
 ## Trust boundary
 
@@ -26,11 +26,11 @@ The Phase 3A trust model is:
    official run and that the gate already examined.
 3. The registrar copies those bytes into an app-controlled pack under fixed,
    app-owned filenames.
-4. Phase 3B code must run `preflight_model_pack()` on the pack before any
-   deserialization.
-5. Phase 3B must then validate the deserialized object type, fitted state, and
-   internal metadata against the manifest and frozen contracts. **This
-   post-deserialization validation is not implemented in Phase 3A.**
+4. Phase 3B `load_model_pack()` runs `preflight_model_pack()` before any
+   deserialization and checks the exact bounded bytes that it loads.
+5. Phase 3B validates the deserialized object type, fitted state, and internal
+   metadata against the manifest and frozen contracts. Registration itself
+   remains free of deserialization.
 
 Registration never deserializes either artifact. Tests run the registrar with
 `joblib.load`, `pickle.load` and `pickle.loads` replaced by functions that
@@ -235,22 +235,22 @@ The artifact and manifest files are read-only (`0444`), which is why `-f` is
 needed. Remove an interrupted `.registering-*` directory the same way after
 inspecting it. Never run this with an empty or wildcard ID.
 
-## Requirements carried into Phase 3B
+## Phase 3B loading boundary
 
-- Call `preflight_model_pack()` immediately before loading.
-- Hash the exact bytes that are deserialized, for example by reading the file
-  into memory, comparing its SHA-256 with the manifest, and then loading from
-  that buffer. Hashing in preflight and reopening the path later leaves a
-  window in which the file could change.
-- Validate the deserialized object type, fitted state, and every internal
-  metadata value against the manifest and frozen contracts.
+- `load_model_pack()` calls `preflight_model_pack()` immediately before loading.
+- It reads each artifact into a bounded memory buffer, compares that buffer's
+  byte count and SHA-256 with the preflighted manifest, then deserializes that
+  same buffer. File replacement after preflight fails before deserialization.
+- It validates exact final artifact types, task slots, fitted components, class
+  order, parameters, runtime, and internal metadata. Both tasks must pass
+  before a usable pack is returned.
+- The service accepts only the accepted gate-anchored `maintainer_final_v2`
+  artifacts. Hash agreement proves identity and does not make pickle safe.
 
-## Not implemented in Phase 3A
+## Not implemented by Phase 3A or 3B
 
-- Deserialization, `predict`, or `predict_proba`
-- Post-deserialization validation of artifact type and internal metadata (3B)
-- CSV upload, inference mode, or any dashboard change (3C)
-- Review queues, threshold simulation, false-positive review, or export (3D)
+- CSV upload, dashboard inference mode, or any dashboard change (3C)
+- Review queue UI (3C), label-backed review, threshold simulation, or export (3D)
 - Feature attribution and synthetic samples (Phase 4)
 - `development_demo_v1` model building
 - Docker (Phase 5)
