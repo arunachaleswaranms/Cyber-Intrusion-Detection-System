@@ -1,10 +1,18 @@
 # v2.1.0 maintainer release handoff
 
-Publication is pending. Phases 1–5 are implemented and merged; independent Phase 5
-review found no blocking issues within the [documented scope](release-readiness-v2.1.md).
-The closure branch is `release/v2.1.0-closure`; its PR must be reviewed and merged
-before publication. This task does not merge, tag, publish a GitHub Release or
-publish a container image, and does not start v3.0.
+Publication is complete. Phases 1–5 are implemented, reviewed and merged;
+independent Phase 5 review found no blocking issues within the
+[documented scope](release-readiness-v2.1.md).
+
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
+The annotated tagger is `Arunachaleswaran M S <arunachaleswaranms@gmail.com>`.
+The historical closure branch was `release/v2.1.0-closure`.
+No container image was published. Any possible future v3.0 milestone requires
+fresh design and explicit approval.
 
 No known failing technical acceptance check remains within the tested scope.
 Broader browser/theme/responsive coverage, other image architectures and original
@@ -12,9 +20,14 @@ trusted-artifact integration on amd64 remain unqualified. The reviewer lacked
 Docker and used CI logs; original-model/browser evidence was not independently
 repeated. No formal GitHub approval was submitted.
 
-## After review and merge
+## Historical guarded publication procedure — completed for v2.1.0
 
-Run from this clone after separately authorizing publication. These commands
+**Reference only: this procedure was already completed for v2.1.0. Do not rerun
+it, recreate the Release or move/recreate the tag.** The existing tag and stable
+Release are the publication record.
+
+The following is the preserved pre-publication procedure. It required separate
+publication authorization and a merged closure PR. These commands
 resolve the closure PR's merge, fetch actual current main and verify that it
 contains the closure merge. They select that current main commit, require its
 five-job push CI to have passed, read the final notes from that commit, and
@@ -94,5 +107,5 @@ If publication fails after the tag push, preserve that tag and inspect the remot
 state. Do not move/delete an existing tag or blindly rerun this script; it refuses
 existing tags by design. No image push is included.
 
-The next maintainer action is to review and merge the closure PR after both its
-final-head push CI and PR CI pass. Publication needs separate authorization.
+Release closure and publication are complete. The project is paused for
+maintenance; no next-version implementation is authorized.

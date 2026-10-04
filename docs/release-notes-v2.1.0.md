@@ -1,10 +1,14 @@
 # CIDS v2.1.0 release notes
 
 CIDS v2.1 adds a local analyst workbench around the frozen v2.0 research evidence.
-**Finalized notes; publication pending.** Phases 1–5 are implemented and merged;
-independent Phase 5 review found no blocking issues. Implementation acceptance
-and verification scope are recorded in [release readiness](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/blob/main/docs/release-readiness-v2.1.md).
-These notes do not create a tag or publish a GitHub Release.
+**Published as stable v2.1.0 on 2026-10-04.** Phases 1–5 are implemented,
+reviewed and merged; independent Phase 5 review found no blocking issues.
+Implementation acceptance and verification scope are recorded in [release readiness](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/blob/main/docs/release-readiness-v2.1.md).
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
 
 - Evidence dashboard derives metrics, exact tables, family weaknesses and
   provenance from checksum-verified committed results; no dataset/model needed.
@@ -39,4 +43,4 @@ trust of executable model files remains necessary. Clearing session references
 is not secure erasure. Broader theme/responsive/browser coverage, other manifest
 architectures and original-artifact integration on amd64 remain unqualified. See
 the acceptance record for exact verification results and the
-[maintainer handoff](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/blob/main/docs/release-handoff-v2.1.0.md) for publication steps.
+[maintainer handoff](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/blob/main/docs/release-handoff-v2.1.0.md) for the completed publication record and historical procedure.

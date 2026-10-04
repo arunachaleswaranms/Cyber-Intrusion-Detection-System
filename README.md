@@ -17,7 +17,16 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–5 implemented and merged; independent review found no blocking issues; v2.1.0 publication pending |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–5 implemented, reviewed and merged; stable [v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) published 2026-10-04 |
+
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
+
+The roadmap retains v3.0 as a possible future milestone requiring fresh design
+and explicit approval.
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -85,9 +94,9 @@ no blocking issues (606 passed / 8 skipped locally; dependency consistency passe
 [PR #7](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/7)
 merged at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`; all five post-merge jobs passed in
 [run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962).
-[v2.1.0 notes](docs/release-notes-v2.1.0.md) are **finalized, publication pending**;
-[maintainer handoff](docs/release-handoff-v2.1.0.md) describes the separate release
-step. Frozen benchmark weaknesses remain intact.
+[v2.1.0 notes](docs/release-notes-v2.1.0.md) describe the published release;
+[publication record](docs/release-handoff-v2.1.0.md) preserves the completed
+procedure as historical reference. Frozen benchmark weaknesses remain intact.
 
 ## Trusted model-pack registration (v2.1 Phase 3A)
 
@@ -203,7 +212,8 @@ attribution states are separate from this exported analysis snapshot. These offl
 
 Phase 4 merged through PR #6 at `ce7f37e` with no blocking review findings and
 passing post-merge CI. Phase 5 is merged through PR #7 with no blocking independent
-review findings and successful five-job post-merge CI; v2.1 remains unpublished.
+review findings and successful five-job post-merge CI. Stable v2.1.0 is published;
+the project is paused for maintenance.
 
 The **Synthetic feature sample** page previews/downloads eight deterministic,
 non-sensitive, non-realistic arithmetic rows on a clean clone. It supplies no
