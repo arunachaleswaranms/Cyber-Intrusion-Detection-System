@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–3 merged; Phase 4 implemented and awaiting independent review, not merged/released |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–4 merged; Phase 5 packaging implemented, awaiting independent review; v2.1 unpublished |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -56,6 +56,33 @@ evidence provenance. The committed gate contains correctness diagnostics only. P
 selected-record SHAP and an offline global model-reliance resource view; both
 remain unavailable without verified local resources. See [`docs/dashboard.md`](docs/dashboard.md) for evidence
 sources, degraded states, validation, and limitations.
+
+## Local container packaging (v2.1 Phase 5)
+
+Python 3.12.14 is pinned by official image digest. The existing dashboard lock
+is preserved, with a Linux-only watchdog pin in `requirements-container.txt`.
+The local workflow runs non-root with a read-only filesystem, bounded ephemeral
+tmpfs, dropped capabilities and **127.0.0.1** host publication:
+
+```bash
+docker compose build
+docker compose up -d --wait
+curl --fail --max-time 5 http://127.0.0.1:8501/_stcore/health
+docker compose down --timeout 15
+```
+
+Evidence and the synthetic preview/download require no dataset/model. See
+[container operations](docs/container.md) for separate trusted-analysis and
+explanation/global-resource commands, private read-only mounts, non-root UID
+permissions, health verification and exact build-context controls. The explicit
+container profile binds 0.0.0.0 internally; ordinary host launch remains loopback
+and fail closed. Docker's host port mapping controls external exposure, which
+the app cannot independently prove. Registration/preparation are host CLI actions.
+
+[Release acceptance](docs/release-readiness-v2.1.md) records verified platforms,
+counts and remaining gates; [v2.1.0 notes](docs/release-notes-v2.1.0-draft.md) are
+**draft and unpublished**. Packaging is awaiting independent review and does not
+by itself establish release readiness. Frozen benchmark weaknesses remain intact.
 
 ## Trusted model-pack registration (v2.1 Phase 3A)
 
@@ -169,9 +196,9 @@ attribution states are separate from this exported analysis snapshot. These offl
 
 ## Bounded explainability and synthetic demonstration (v2.1 Phase 4)
 
-Phase 4 is implemented and awaiting independent review on
-`cids-v2.1-phase4-explainability-demo`; it is not merged or released. Phase 5
-follows only after Phase 4 merge.
+Phase 4 merged through PR #6 at `ce7f37e` with no blocking review findings and
+passing post-merge CI. Phase 5 packaging is implemented and awaiting independent
+review; v2.1 remains unpublished.
 
 The **Synthetic feature sample** page previews/downloads eight deterministic,
 non-sensitive, non-realistic arithmetic rows on a clean clone. It supplies no

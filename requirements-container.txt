@@ -1,0 +1,4 @@
+# Linux image overlay: retain every dashboard pin unchanged.
+-r requirements-dashboard.txt
+# Streamlit requires this additional dependency on Linux (not macOS).
+watchdog==6.0.0

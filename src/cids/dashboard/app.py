@@ -104,14 +104,20 @@ def _sidebar(catalog: EvidenceCatalog) -> None:
         )
 
 
-def exposure_problems(address: object, gather_usage_stats: object) -> list[str]:
+def exposure_problems(address: object, gather_usage_stats: object, *,
+                      launch_profile: object = None, container: bool = False) -> list[str]:
     """Explain why the running server violates the local-only policy, if it does.
 
     ``.streamlit/config.toml`` only applies when Streamlit starts in the
     repository root, so the policy is re-checked at runtime and fails closed.
+    Only the explicit non-root Docker profile permits internal 0.0.0.0; host
+    port publication remains outside the application's visibility.
     """
     problems = []
-    if address not in LOOPBACK_ADDRESSES:
+    from cids.dashboard.container import PROFILE
+
+    container_binding = (launch_profile == PROFILE and container and address == "0.0.0.0")
+    if address not in LOOPBACK_ADDRESSES and not container_binding:
         shown = address if address else "all interfaces (unset)"
         problems.append(f"the server listens on {shown}, not loopback")
     if gather_usage_stats is not False:
@@ -120,8 +126,11 @@ def exposure_problems(address: object, gather_usage_stats: object) -> list[str]:
 
 
 def _enforce_local_only() -> None:
+    from cids.dashboard.container import PROFILE_ENV, container_context
+
     problems = exposure_problems(
-        st.get_option("server.address"), st.get_option("browser.gatherUsageStats")
+        st.get_option("server.address"), st.get_option("browser.gatherUsageStats"),
+        launch_profile=os.environ.get(PROFILE_ENV), container=container_context(),
     )
     if problems:
         st.error(
