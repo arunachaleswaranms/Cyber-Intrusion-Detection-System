@@ -1,0 +1,9 @@
+services:
+  workbench:
+    volumes:
+      - type: bind
+        source: "${CIDS_PACK_DIR:?Set the absolute registered pack directory}"
+        target: "/app/artifacts/v2.1/model-packs/${CIDS_MODEL_PACK_ID:?Set the registered pack ID}"
+        read_only: true
+        bind:
+          create_host_path: false

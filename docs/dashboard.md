@@ -1,6 +1,6 @@
 # v2.1 evidence dashboard, local analysis and explainability (Phases 2–4)
 
-Status: **Phases 1–3 merged; Phase 4 implemented, awaiting independent review, not merged/released**
+Status: **Phases 1–4 merged; Phase 5 packaging implemented and awaiting independent review; v2.1 unpublished**
 
 The dashboard presents the frozen v2.0 benchmark and the accepted v2.1
 explanation gate. It reads committed, non-executable evidence, verifies it on
@@ -10,7 +10,8 @@ official result. A separate local analysis page accepts bounded feature CSVs
 and calls the existing Phase 3B services only after an explicit action.
 
 > Offline research artifact, not a production IDS. There is no authentication;
-> the server listens on `127.0.0.1` only.
+> ordinary host execution listens on `127.0.0.1` only. The explicit Docker profile
+> binds internally to 0.0.0.0 and publishes the host port on 127.0.0.1.
 
 ## Launch
 
@@ -437,12 +438,14 @@ estimator classes (`zero_division=0`). Source features are permuted before encod
 The final models were refit on train plus validation, so this is in-development
 reliance, not a held-out result, local SHAP or causal evidence. Default evidence
 navigation never loads models/backgrounds or imports SHAP. Uploaded SHAP aggregates
-are never substituted. Phase 4 is implemented and awaiting independent review,
-not merged/released; Phase 5 follows only after Phase 4 merge.
+are never substituted. Phase 4 merged through PR #6; Phase 5 packaging and
+current acceptance evidence are linked below.
 
 ## Validation performed for Phase 4 (2026-10-04)
 
-Implementer verification, separate from the pending independent review:
+Historical Phase 4 implementer verification, separate from the subsequently
+completed independent review. The Phase 5 acceptance record supersedes the
+original-resource/browser gaps recorded in this historical section:
 
 | Environment | Full suite | Exact skip reasons |
 |---|---|---|
@@ -493,7 +496,7 @@ analysis-unavailable page. A live loopback server returned `ok` from
 and global-reliance views were exercised through AppTest, **not visually inspected
 in a real browser**; light theme/responsive attribution QA and original-resource
 integration remain unperformed. Clearing references is not secure memory erasure.
-Phase 4 is implemented and awaiting independent review; not merged or released.
+These were Phase 4 handoff gaps; see the current Phase 5 acceptance record below.
 
 ## Validation performed for Phase 3D (2026-10-04)
 
@@ -653,14 +656,33 @@ passed in [CI run 37180576999](https://github.com/arunachaleswaranms/Cyber-Intru
 - The official-test report records artifact filenames but not artifact hashes;
   model digests shown come from the v2.1 gate.
 - The Apple Silicon reproduction record is not committed and cannot be displayed.
-- Degraded states are tested with `AppTest`; only the fully verified state was
-  inspected in a real browser.
+- AppTest covers degraded states; Phase 5 browser verification scope is recorded
+  in the current acceptance document.
 - Charts depend on Streamlit's bundled Vega-Lite renderer; `AppTest` cannot
   detect client-side rendering failures, so visual checks remain manual.
 - When started outside the repository root without the loopback and telemetry
   flags, the page refuses to render, but Streamlit has already bound the port on
-  all interfaces and serves that refusal. A launcher script or container
-  (Phase 5) would enforce the binding itself.
+  all interfaces and serves that refusal. Always use the documented host flags.
+  The Phase 5 container launcher explicitly controls its internal binding;
+  loopback host publication is an operator-controlled Docker boundary.
 - Missing values in numeric tables render as Streamlit's empty-cell marker
   rather than the words "not recorded"; they are never shown as zero.
-- Docker packaging, the non-root image, and release checks are Phase 5.
+- Docker packaging and release checks are implemented in Phase 5; see the
+  current acceptance record linked below.
+
+## Phase 5 container packaging
+
+[Exact build/run, three operating modes, mounts and private permissions](container.md)
+are documented separately. Compose keeps the filesystem read-only, `/tmp` ephemeral,
+capabilities dropped, no-new-privileges enabled and resources bounded. The explicit
+Docker-only non-root launch profile narrowly permits internal 0.0.0.0; host execution
+still fails closed outside loopback. Host mapping controls exposure and cannot be
+proved by the application. Telemetry and built-in table export/copy stay disabled.
+No model registration or resource preparation happens during build/startup.
+
+Phase 4 is merged through PR #6 at `ce7f37e`; independent review recorded 588 passed /
+4 skipped, dependency check passed and no blocking findings. All four post-merge
+jobs passed in [run 37191000174](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37191000174).
+Its outstanding original-resource and populated-view browser gates are addressed
+separately in [release acceptance](release-readiness-v2.1.md), with exact Phase 5
+results, skips and platform limits. The release is not published.

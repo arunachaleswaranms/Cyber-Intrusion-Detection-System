@@ -37,7 +37,7 @@ or representative of modern traffic.
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
-| Automated tests | All four post-merge CI jobs passed at Phase 3D merge `5305f0a` in run `37183225010`. Phase 4 local suites: base 439 passed / 65 skipped; reproduction 494 / 10; workbench 505 / 6; dashboard 591 / 1. Phase 4 independent review is pending |
+| Automated tests | Phase 4 independent review: 588 passed / 4 skipped; dependency check passed, no blocking findings. All four post-merge jobs passed at `ce7f37e` in run `37191000174`. Phase 5 verification is recorded in docs/release-readiness-v2.1.md |
 | Phase 3B local verification | Base 247 passed, 34 skipped (30 pinned-runtime tests, 2 SHAP and 2 Streamlit); reproduction 277 passed, 4 skipped (2 SHAP and 2 Streamlit); workbench 286 passed, 2 skipped (Streamlit); dashboard 322 passed. The ignored real pack passed 16 checksum-verified training rows. Dashboard `pip check`, all four environment dependency checks, and `git diff --check` passed |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
@@ -59,8 +59,9 @@ or representative of modern traffic.
 | v2.1 model pack | Phase 3A registration and Phase 3B verified loading/inference implemented. The ignored local pack `e2d4f329…2b18` passed exact-buffer loading and bounded inference on 16 checksum-verified training-partition rows; no official-test data or metrics were accessed. Phase 3C adds an explicit opt-in bounded CSV analysis page; default evidence navigation does not load models |
 | Phase 3D handoff | Merged through PR #5 at `5305f0a317164c24e81631abbc2a870498e0ac7f`; all four post-merge CI jobs passed in run `37183225010`. Historical local verification: Local matrix: base 325 passed / 59 skipped; reproduction 378 / 6; workbench 387 / 4; dashboard 464 / 0. Focused 188 / 0; four dependency checks passed |
 | Phase 3C handoff | Merged through PR #4 at `9d81a3c4136f7062aca3c238c0d041e722dd1330`; independent review had no blocking findings; all four post-merge CI jobs passed |
-| Phase 4 handoff | Implemented, awaiting independent review on `cids-v2.1-phase4-explainability-demo`; focused 127 passed / 1 skipped, four dependency checks and diff check passed. Original-model explanations skipped for absent verified development resources |
-| Next milestone | Phase 4 independent review and merge; Phase 5 only after Phase 4 merge |
+| Phase 4 handoff | Merged through PR #6 at `ce7f37e2a0a33894ea5c83de40bdf5d065b7f947`; independent review had no blocking findings. Original explanation/global integration and populated-view browser QA were outstanding at handoff |
+| Phase 5 handoff | Packaging implemented on `cids-v2.1-phase5-packaging-release`; local and five-job Linux CI verification passed; awaiting independent review/signoff, not release ready/published |
+| Next milestone | Phase 5 independent review and completed acceptance evidence; no release/tag/image publication authorized |
 
 ## Phase 3C implementation and verification (2026-10-04)
 
@@ -140,8 +141,9 @@ in [run 37183225010](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detec
 
 Branch: `cids-v2.1-phase4-explainability-demo`, based on current `origin/main`
 `5305f0a317164c24e81631abbc2a870498e0ac7f`, including Phase 3D PR #5. Implemented
-and awaiting independent review; not merged or released. Phase 5 follows only
-after Phase 4 merge. [Setup/contracts](docs/explanation-resources.md) and
+and independently reviewed with no blocking findings (588 passed / 4 skipped;
+dependency check passed). Merged through PR #6 at `ce7f37e`; all four post-merge
+jobs passed in run `37191000174`. Historical implementation evidence follows. [Setup/contracts](docs/explanation-resources.md) and
 [verification](docs/dashboard.md) describe the evidence and limitations.
 
 - Reused the accepted SHAP 0.52.0 permutation method and source mapping. Explicit
@@ -189,6 +191,50 @@ the synthetic preview and unavailable states; populated attribution/global views
 were tested with AppTest but not visually inspected in a browser. No original
 official-test raw file was accessed or rescored and no frozen config/evidence/gate,
 model-pack acceptance rule or export allowlist changed.
+
+## Phase 5 packaging implementation (2026-10-04)
+
+Branch `cids-v2.1-phase5-packaging-release` starts at current `origin/main`
+`ce7f37e2a0a33894ea5c83de40bdf5d065b7f947` (Phase 4 PR #6 included).
+Phase 4 independent review: 588 passed / 4 skipped, dependency check passed, no
+blocking findings. All four post-merge jobs passed in run `37191000174`.
+
+- Verified/pinned Python 3.12.14 official multi-platform image index; exact
+  existing dashboard/workbench/reproduction locks preserved. A separate Linux
+  overlay pins watchdog 6.0.0. Explicit file allowlist excludes private data,
+  artifacts, environments, secrets, uploads, exports and Git from build context.
+- Non-root image and standard-library bounded health probe; explicit Docker-only
+  launch profile permits internal 0.0.0.0 without weakening ordinary host
+  loopback/telemetry guards. Host publication is operator-controlled 127.0.0.1.
+- Three documented modes with read-only private digest-directory mounts, owner
+  UID permissions, read-only filesystem, bounded ephemeral tmpfs, capabilities
+  dropped, no-new-privileges, init, CPU/memory/PID bounds and graceful stop.
+  No registration/preparation during build/startup or browser actions.
+- Existing four CI jobs preserved; new packaging job audits actual context,
+  builds, checks exact runtime/dependencies/permissions, exercises restricted
+  synthetic workers/review/simulation/export and validates startup/stop/networking.
+- Original development resources prepared only by approved host CLI feature-only
+  overlap reconstruction (prepared CSV partitions absent); both original worker
+  tasks passed on committed synthetic foreground on Mac and native arm64 Docker.
+  Both separate global reliance bundles validated. No official-test foreground
+  scoring/explaining/tuning, gate rerun, retraining or acceptance broadening.
+- [Acceptance evidence](docs/release-readiness-v2.1.md) maps all design criteria;
+  [container operations](docs/container.md) has exact commands; release notes are
+  draft/unpublished. Independent Phase 5 review and acceptance signoff stay open.
+
+Local full matrix: **base 453 passed / 73 skipped; reproduction 508 / 18;
+workbench 520 / 13; dashboard 614 / 0**. Native Linux arm64 container workbench/
+dashboard suite: **537 / 5**; separate original synthetic explanation integration
+**1 / 0**; profile/permission focus **22 / 0**. Four host dependency checks, image
+checks, context audit, healthy loopback publication, read-only operation, graceful
+shutdown and diff checks passed. Exact skip/platform/browser scope and remaining
+review gate is in the acceptance document. All five implementation-head jobs
+passed in [run 37193157065](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37193157065);
+native Linux amd64 container qualification passed 537 / 5. Browser inspected
+populated original explanation/global/export views, container analysis/explanations,
+the missing-resource view and a test-only deadline-failure state with export still
+usable. Final documentation-head CI is tracked in the review PR. Frozen results/configs/gate
+hashes and all existing model/runtime acceptance rules remain unchanged.
 
 ## Release roadmap
 
@@ -244,7 +290,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–3 merged; Phase 4 implemented and awaiting independent review, not merged/released**
+Status: **Phases 1–4 merged; Phase 5 implemented and awaiting independent review; not release ready/published**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -266,10 +312,10 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
   - [x] Phase 3B: verified deserialization and framework-independent inference.
   - [x] Phase 3C: bounded CSV analysis UI and review queue (merged by PR #4 at `9d81a3c`; post-merge CI passed).
   - [x] Phase 3D: label-backed review, ephemeral threshold simulation, and safe export (merged by PR #5 at `5305f0a`; post-merge CI passed).
-- [x] Phase 4: implement the approved explanation path and synthetic sample (awaiting independent review, not merged/released).
-- [ ] Phase 5: add Docker, non-root packaging, container health checks, and
-      release checks (the pinned dashboard lock and Streamlit `AppTest` coverage
-      already shipped in Phase 2).
+- [x] Phase 4: bounded explanations and synthetic sample (PR #6 merged; review and post-merge CI passed).
+- [x] Phase 5: non-root Docker packaging, health checks, local read-only workflow,
+      container verification and release acceptance documentation (awaiting review).
+- [ ] Complete release acceptance, independent review and separately authorized publication.
 
 Exit criteria: a reviewer can run the dashboard locally, analyze safe sample
 data, inspect features that influenced each model output, and review measured false positives.
@@ -361,12 +407,10 @@ Before finishing:
 
 ## Next session
 
-1. Independently review the pushed Phase 3D branch and its final-head CI.
-   Phase 3D is implemented, not merged or released. Phase 4 begins only after
-   Phase 3D merge. Phase 3C is already merged by PR #4 with post-merge CI passing.
-2. Optional maintainer check: open the dashboard locally and repeat the visual
-   check in `docs/dashboard.md` in your own browser; degraded states were
-   exercised only through `AppTest`.
+1. Independently review Phase 5 and its final-head five-job CI; see
+   `docs/release-readiness-v2.1.md` for exact evidence and outstanding gates.
+2. Complete any remaining acceptance checks before separately authorizing a
+   release/tag/image publication. Do not start v3.0 from this handoff.
 3. Optional evidence, not a Phase 3 blocker: the Apple Silicon reproduction
    selection record. Commit it only if the exact original file exists and its
    canonical digest equals the `reproduction_selection_sha256` already recorded

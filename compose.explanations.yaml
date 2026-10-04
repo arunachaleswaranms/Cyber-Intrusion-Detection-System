@@ -1,0 +1,9 @@
+services:
+  workbench:
+    volumes:
+      - type: bind
+        source: "${CIDS_RESOURCE_DIR:?Set the absolute prepared resource directory}"
+        target: "/app/artifacts/v2.1/explanation-resources/${CIDS_EXPLANATION_RESOURCE_ID:?Set the prepared resource ID}"
+        read_only: true
+        bind:
+          create_host_path: false

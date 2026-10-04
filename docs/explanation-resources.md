@@ -1,7 +1,9 @@
 # Phase 4 explanation resources and synthetic demonstration
 
-Status: implemented on `cids-v2.1-phase4-explainability-demo`, awaiting independent
-review; not merged or released. Phase 5 follows only after Phase 4 merge.
+Status: Phase 4 merged by PR #6 at `ce7f37e`; independent review had no blocking
+findings (588 passed / 4 skipped, dependency check passed); four post-merge jobs
+passed. Phase 5 container packaging is implemented and awaiting independent review.
+The release remains unpublished.
 
 The accepted ADR 0003 / Phase 1 gate remains unchanged. No historical gate or
 original official-test evaluation is rerun. Ordinary analysis, label-backed
@@ -192,3 +194,13 @@ CIDS_PHASE4_ORIGINAL_RESOURCE_ID="$CIDS_EXPLANATION_RESOURCE_ID" \
 Run only when the original trusted pack and compatible CLI-prepared resources
 exist. No test foreground is scored or explained. Exact implementation verification
 counts, skips and browser visual QA limits are recorded in [dashboard.md](dashboard.md).
+
+## Container resources (Phase 5)
+
+Use the separate [trusted-resource Compose workflow](container.md#local-explanations-and-separate-global-reliance).
+It mounts only the configured digest directory read-only at the existing controlled
+path, with a nonzero UID able to traverse/read the private host files. No root or
+world-writable permission workaround is permitted. Preparation remains a host CLI
+action; global reliance requires `--prepare-global`. Session data stays in memory;
+clearing references is not secure erasure. Original-model and container integration
+results are tracked in [release acceptance](release-readiness-v2.1.md).

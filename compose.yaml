@@ -1,0 +1,21 @@
+# Local single-user workflow. Host publication is the exposure boundary.
+services:
+  workbench:
+    image: cids-workbench:v2.1-local
+    build: .
+    user: "${CIDS_UID:-10001}:${CIDS_GID:-10001}"
+    ports:
+      - "127.0.0.1:8501:8501"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=134217728,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    cpus: 2.0
+    mem_limit: 2g
+    pids_limit: 128
+    stop_grace_period: 15s
+    environment:
+      CIDS_MODEL_PACK_ID: "${CIDS_MODEL_PACK_ID:-}"
+      CIDS_EXPLANATION_RESOURCE_ID: "${CIDS_EXPLANATION_RESOURCE_ID:-}"
