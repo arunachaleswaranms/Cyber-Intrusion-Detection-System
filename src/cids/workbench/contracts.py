@@ -320,12 +320,29 @@ def parse_inference_csv(
 
     header = _read_header(text)
     _validate_columns(header)
+    # pandas accepts some malformed quoting and surplus fields as an index.
+    # Check the complete bounded CSV with the strict reader before conversion.
+    try:
+        reader = csv.reader(io.StringIO(text), strict=True)
+        next(reader)
+        count = 0
+        for row in reader:
+            if not row:  # Match pandas' blank-line behavior.
+                continue
+            count += 1
+            if count > policy["input"]["max_rows"]:
+                raise InputContractError("CSV exceeds the configured row limit")
+            if len(row) != len(header):
+                raise InputContractError("CSV body has an inconsistent field count")
+    except csv.Error as exc:
+        raise InputContractError("CSV body has malformed quoting or an oversized field") from exc
     try:
         frame = pd.read_csv(
             io.StringIO(text),
             encoding=policy["input"]["encoding"],
             nrows=policy["input"]["max_rows"] + 1,
             on_bad_lines="error",
+            dtype={ID_COLUMN: str},
         )
     except (pd.errors.ParserError, UnicodeError, ValueError) as exc:
         raise InputContractError("CSV body is malformed") from exc

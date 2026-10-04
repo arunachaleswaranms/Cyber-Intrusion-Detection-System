@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+import os
 
 import streamlit as st
 
@@ -62,6 +63,26 @@ PAGES = (
     ),
 )
 PAGE_KEYS = tuple(page.key for page in PAGES)
+
+
+def _analysis_session(repo_root):
+    # This lightweight orchestration module imports neither inference nor SHAP.
+    from cids.workbench.analysis import AnalysisSession, PACK_ENV
+
+    if "local_analysis" not in st.session_state:
+        st.session_state.local_analysis = AnalysisSession()
+    session = st.session_state.local_analysis
+    pack_id = os.environ.get(PACK_ENV)
+    session.bind(Path(repo_root), pack_id)
+    return session, pack_id
+
+
+def _render_analysis(repo_root):
+    from cids.dashboard.views.analysis import render
+
+    research_notice(local_analysis=True)
+    session, pack_id = _analysis_session(repo_root)
+    render(session, Path(repo_root), pack_id)
 
 
 def _sidebar(catalog: EvidenceCatalog) -> None:
@@ -133,6 +154,7 @@ def _configure() -> None:
 
 def _page_callable(spec: PageSpec, catalog: EvidenceCatalog) -> Callable[[], None]:
     def page() -> None:
+        research_notice()
         _render_guarded(spec, catalog)
 
     page.__name__ = f"page_{spec.key}"
@@ -143,6 +165,7 @@ def main(repo_root: str | Path = REPO_ROOT) -> None:
     """Render the multipage dashboard. Evidence is re-verified on every run."""
     _configure()
     _enforce_local_only()
+    _analysis_session(repo_root)  # Invalidate changed binding even on evidence pages.
     catalog = load_catalog(repo_root)
     sections: dict[str, list] = {}
     for spec in PAGES:
@@ -156,18 +179,27 @@ def main(repo_root: str | Path = REPO_ROOT) -> None:
                 default=spec.key == "overview",
             )
         )
+    sections["Local analysis"] = [st.Page(
+        lambda: _render_analysis(repo_root), title="Local CSV analysis",
+        icon=":material/upload_file:", url_path="analysis",
+    )]
     navigation = st.navigation(sections)
     _sidebar(catalog)
-    research_notice()
     navigation.run()
 
 
 def render_single_page(key: str, repo_root: str | Path = REPO_ROOT) -> None:
     """Render one page without navigation; used by the Streamlit test harness."""
+    if key == "analysis":
+        _configure()
+        _enforce_local_only()
+        _render_analysis(repo_root)
+        return
     specs = {spec.key: spec for spec in PAGES}
     if key not in specs:
         raise ValueError(f"unknown dashboard page: {key!r}")
     _configure()
+    _analysis_session(repo_root)
     catalog = load_catalog(repo_root)
     _sidebar(catalog)
     research_notice()

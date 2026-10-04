@@ -16,3 +16,5 @@ magicEnabled = false
 
 [client]
 toolbarMode = "minimal"
+# Phase 3C has no export workflow, including built-in table CSV/copy actions.
+disableDataExport = true
