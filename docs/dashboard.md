@@ -1,6 +1,6 @@
 # v2.1 evidence dashboard, local analysis and explainability (Phases 2–4)
 
-Status: **Phases 1–4 merged; Phase 5 packaging implemented and awaiting independent review; v2.1 unpublished**
+Status: **Phases 1–5 implemented and merged; independent Phase 5 review found no blocking issues; v2.1 publication pending**
 
 The dashboard presents the frozen v2.0 benchmark and the accepted v2.1
 explanation gate. It reads committed, non-executable evidence, verifies it on
@@ -685,4 +685,12 @@ Phase 4 is merged through PR #6 at `ce7f37e`; independent review recorded 588 pa
 jobs passed in [run 37191000174](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37191000174).
 Its outstanding original-resource and populated-view browser gates are addressed
 separately in [release acceptance](release-readiness-v2.1.md), with exact Phase 5
-results, skips and platform limits. The release is not published.
+results, skips and platform limits. Phase 5 merged through PR #7 at
+`665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`; all five post-merge jobs passed in
+[run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). Independent local verification recorded
+606 passed / 8 skipped and dependency consistency passed, with no blocking
+code/documentation findings. Docker was unavailable to the reviewer: container
+checks used CI logs, and original-model/browser checks used implementer evidence.
+No formal GitHub approval was submitted. [Final notes](release-notes-v2.1.0.md)
+are ready for the separate [publication handoff](release-handoff-v2.1.0.md);
+the release remains unpublished.
