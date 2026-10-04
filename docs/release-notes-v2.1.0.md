@@ -1,8 +1,10 @@
-# v2.1.0 release notes — DRAFT, unpublished
+# CIDS v2.1.0 release notes
 
 CIDS v2.1 adds a local analyst workbench around the frozen v2.0 research evidence.
-Release acceptance and independent review remain governed by
-[release readiness](release-readiness-v2.1.md); this draft is not a release.
+**Finalized notes; publication pending.** Phases 1–5 are implemented and merged;
+independent Phase 5 review found no blocking issues. Implementation acceptance
+and verification scope are recorded in [release readiness](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/blob/main/docs/release-readiness-v2.1.md).
+These notes do not create a tag or publish a GitHub Release.
 
 - Evidence dashboard derives metrics, exact tables, family weaknesses and
   provenance from checksum-verified committed results; no dataset/model needed.
@@ -19,7 +21,10 @@ Release acceptance and independent review remain governed by
 - Local Docker packaging pins Python 3.12.14 and existing dashboard dependencies,
   runs non-root with loopback host publication, read-only filesystem/artifact
   mounts, ephemeral tmpfs and bounded resources. Registration/preparation stay
-  outside normal startup and the browser. No image is published.
+  outside normal startup and the browser. Tested on macOS arm64 host, native
+  Linux arm64 Docker Desktop and native Linux amd64 CI. Original trusted-artifact
+  integration ran on macOS/arm64 Docker; amd64 container checks used representative
+  synthetic artifacts. No image is published.
 
 Frozen v2.0 results are unchanged: binary macro F1 0.8663, balanced accuracy
 0.8595 and FPR 0.2689; multiclass macro F1 0.5029 and balanced accuracy 0.5761.
@@ -31,5 +36,7 @@ or calibrated threat detector. No live capture/PCAP, remote hosting, multi-user
 authentication or operational response is supplied. Attributions are model
 influence, not causality; synthetic outputs prove no detection quality. Explicit
 trust of executable model files remains necessary. Clearing session references
-is not secure erasure. See the acceptance record for exact tested platforms,
-verification results and any remaining release blockers.
+is not secure erasure. Broader theme/responsive/browser coverage, other manifest
+architectures and original-artifact integration on amd64 remain unqualified. See
+the acceptance record for exact verification results and the
+[maintainer handoff](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/blob/main/docs/release-handoff-v2.1.0.md) for publication steps.

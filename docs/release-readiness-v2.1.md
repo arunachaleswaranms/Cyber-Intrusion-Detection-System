@@ -1,8 +1,15 @@
 # v2.1 release acceptance evidence
 
-Phase 5 implemented; local and Linux CI verification passed. Independent
-review/signoff is pending.
-**Not release ready or published.** A build is not release acceptance.
+**Phases 1–5 implemented and merged; implementation acceptance complete within
+the documented verification scope; v2.1.0 publication pending.**
+
+Independent Phase 5 code/documentation review found **no blocking issues**.
+Phase 5 merged through [PR #7](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/7)
+at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`. All five post-merge jobs passed in
+[run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). No formal GitHub approval was submitted.
+[Final release notes](release-notes-v2.1.0.md) and [maintainer handoff](release-handoff-v2.1.0.md)
+prepare separate tag/Release publication; no v2.1.0 tag or Release existed when
+closure started from this current main commit on 2026-10-04.
 
 Phase 4 merged through PR #6 at `ce7f37e2a0a33894ea5c83de40bdf5d065b7f947`.
 Independent review: **588 passed / 4 skipped**, dependency check passed, no blocking
@@ -31,11 +38,24 @@ to evidence. Existing tests are reused without weakening production pack anchors
 | Provenance and formula-safe JSON/CSV | `test_workbench_export.py`, `test_dashboard_review_export.py` | Verified locally |
 | Safe non-realistic synthetic sample | `test_synthetic_sample.py`, `test_dashboard_phase4.py` | Verified locally |
 | Unit/integration/Streamlit/Docker pass | Four unchanged CI jobs plus `container-packaging`; `scripts/verify_container.py` | Verified on Mac, native arm64 Docker and amd64 CI |
-| Exact setup and honest current state | README, `container.md`, dashboard/resource docs, PROJECT_PLAN; independent review | Awaiting review |
+| Exact setup and honest current state | README, `container.md`, dashboard/resource docs, PROJECT_PLAN; independent code/documentation review | No blocking findings; closure PR review pending |
 
-## Verification record
+## Independent Phase 5 review scope (2026-10-04)
 
-Verified on 2026-10-04:
+- Independent local verification: **606 passed / 8 skipped**; dependency
+  consistency passed. These results are separate from the implementer matrix below.
+- Docker was unavailable to the independent reviewer. Container verification
+  used CI logs: **537 passed / 5 skipped**, build-context exclusion, exact
+  runtime/dependency, non-root/read-only, loopback, health and shutdown checks.
+- Original-model and browser checks were reviewed from the implementer's
+  evidence below, rather than independently repeated. This review does not
+  establish original-artifact integration on amd64 or broader browser coverage.
+- Code/documentation review found no blocking issues. This is recorded
+  implementation acceptance, not a formal GitHub approval or release publication.
+
+## Historical implementer verification record
+
+Verified by the implementer on 2026-10-04:
 
 | Platform/environment | Passed | Skipped | Scope |
 |---|---:|---:|---|
@@ -91,7 +111,7 @@ reconstruction/conservation checks passed. Both global bundles were validated
 and loaded separately; no new benchmark was produced. Docker inspection
 confirmed both bind mounts had `RW=false`; the documented CLI preflight passed.
 
-## Browser checks and remaining gates
+## Historical implementer browser checks and remaining limitations
 
 Chrome on macOS inspected the dark desktop analysis queue/selected record,
 populated original binary and raw-family attribution views (including observed
@@ -112,14 +132,20 @@ reaping/IPC bounds are independently verified by the restricted-container suite.
 All five jobs passed for implementation `45a6d7a6457497e893526f73136bdcf931e4466a`
 in [Linux CI run 37193157065](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37193157065),
 including actual native `linux/amd64` image build/runtime qualification. The final
-documentation head and its CI links are recorded in the review PR. Linux CI has
+documentation head `0fe0fc34ffe6f958d075189ec06f3559db9f0617` passed
+[push CI 37193546153](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37193546153) and
+[PR CI 37193785168](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37193785168). Linux CI has
 no private original model/resources; their actual integration was performed on
 the maintainer's Mac and native arm64 Docker, not claimed on amd64.
 
-Remaining release gate: **independent Phase 5 review and acceptance signoff**.
-No known failing technical acceptance check remains. Other manifest architectures
-are unqualified; broader theme/responsive/browser testing and original-artifact
-integration on amd64 are not claimed. v2.1 is not release ready or published.
+Independent Phase 5 review is complete with no blocking issues, and all five
+post-merge CI jobs passed. No known failing technical acceptance check remains
+within the tested scope. Remaining release steps: review/merge the closure PR,
+verify its merged main commit and CI, then separately authorize annotated tag and
+GitHub Release publication. The release remains unpublished; no container image
+publication is part of this handoff. Other manifest architectures are unqualified;
+broader theme/responsive/browser coverage and original-artifact integration on
+amd64 remain unqualified. These limits stay visible in the final notes.
 
 ## Known product limitations
 

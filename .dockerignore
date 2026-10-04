@@ -66,7 +66,7 @@ src/cids/dashboard/views/**
 !docs/model-pack-registration.md
 !docs/model-selection.md
 !docs/preprocessing.md
-!docs/release-notes-v2.1.0-draft.md
+!docs/release-notes-v2.1.0.md
 !docs/release-readiness-v2.1.md
 !docs/schemas/unsw-nb15-prepared-v1.md
 !docs/shap-compatibility-gate.md

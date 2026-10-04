@@ -2,8 +2,10 @@
 
 Status: Phase 4 merged by PR #6 at `ce7f37e`; independent review had no blocking
 findings (588 passed / 4 skipped, dependency check passed); four post-merge jobs
-passed. Phase 5 container packaging is implemented and awaiting independent review.
-The release remains unpublished.
+passed. Phase 5 container packaging merged through PR #7 at `665a3ef`; all five
+post-merge CI jobs passed. Independent review found no blocking issues; its
+original-model and browser checks used implementer evidence rather than repeating
+them. See [acceptance scope](release-readiness-v2.1.md). The release remains unpublished.
 
 The accepted ADR 0003 / Phase 1 gate remains unchanged. No historical gate or
 original official-test evaluation is rerun. Ordinary analysis, label-backed

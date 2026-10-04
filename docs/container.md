@@ -161,3 +161,21 @@ workbench/dashboard suite under restricted non-root Docker with synthetic/test-o
 then checks Compose publication, healthy startup and graceful stop. It never
 mounts private host datasets/models/resources. Original trusted-resource and
 browser gates are reported separately from representative tests.
+
+## Accepted implementation and publication state
+
+Phase 5 merged through PR #7 at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`. All five jobs passed
+in [post-merge CI 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). Independent code/documentation
+review found no blocking issues; local verification recorded 606 passed / 8 skipped
+and dependency consistency passed. Docker was unavailable to that reviewer;
+container verification used CI logs (537 passed / 5 skipped plus context exclusion,
+runtime/dependency, non-root/read-only, loopback, health and shutdown checks).
+Original-model and browser checks used implementer evidence rather than independent
+repetition. Other architectures, broader browser coverage and original-artifact
+integration on amd64 remain unqualified. No formal GitHub approval was submitted.
+
+[Final release notes](release-notes-v2.1.0.md) replace the draft; the existing
+build-context allowlist entry follows that filename rename. Publication instructions
+in [the maintainer handoff](release-handoff-v2.1.0.md) are repository-only and
+excluded from the runtime context. Tag/Release publication remains pending;
+no container image is published.

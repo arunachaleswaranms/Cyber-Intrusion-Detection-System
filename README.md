@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–4 merged; Phase 5 packaging implemented, awaiting independent review; v2.1 unpublished |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–5 implemented and merged; independent review found no blocking issues; v2.1.0 publication pending |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -80,9 +80,14 @@ and fail closed. Docker's host port mapping controls external exposure, which
 the app cannot independently prove. Registration/preparation are host CLI actions.
 
 [Release acceptance](docs/release-readiness-v2.1.md) records verified platforms,
-counts and remaining gates; [v2.1.0 notes](docs/release-notes-v2.1.0-draft.md) are
-**draft and unpublished**. Packaging is awaiting independent review and does not
-by itself establish release readiness. Frozen benchmark weaknesses remain intact.
+counts and verification scope. Independent Phase 5 code/documentation review found
+no blocking issues (606 passed / 8 skipped locally; dependency consistency passed).
+[PR #7](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/7)
+merged at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`; all five post-merge jobs passed in
+[run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962).
+[v2.1.0 notes](docs/release-notes-v2.1.0.md) are **finalized, publication pending**;
+[maintainer handoff](docs/release-handoff-v2.1.0.md) describes the separate release
+step. Frozen benchmark weaknesses remain intact.
 
 ## Trusted model-pack registration (v2.1 Phase 3A)
 
@@ -197,8 +202,8 @@ attribution states are separate from this exported analysis snapshot. These offl
 ## Bounded explainability and synthetic demonstration (v2.1 Phase 4)
 
 Phase 4 merged through PR #6 at `ce7f37e` with no blocking review findings and
-passing post-merge CI. Phase 5 packaging is implemented and awaiting independent
-review; v2.1 remains unpublished.
+passing post-merge CI. Phase 5 is merged through PR #7 with no blocking independent
+review findings and successful five-job post-merge CI; v2.1 remains unpublished.
 
 The **Synthetic feature sample** page previews/downloads eight deterministic,
 non-sensitive, non-realistic arithmetic rows on a clean clone. It supplies no
