@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 and 3A–3D implemented; Phase 3C merged with post-merge CI passing; Phase 3D awaiting independent review |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–3 merged; Phase 4 implemented and awaiting independent review, not merged/released |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -52,9 +52,9 @@ streamlit run dashboard/app.py    # from the repository root
 
 The server binds to `127.0.0.1` with usage telemetry disabled. Pages cover the
 overview, binary detection, attack families, explainability status, and
-evidence provenance. Global feature importance is **not** shown: the committed
-gate report contains correctness diagnostics only, and attribution views are
-scheduled for Phase 4. See [`docs/dashboard.md`](docs/dashboard.md) for evidence
+evidence provenance. The committed gate contains correctness diagnostics only. Phase 4 adds explicit
+selected-record SHAP and an offline global model-reliance resource view; both
+remain unavailable without verified local resources. See [`docs/dashboard.md`](docs/dashboard.md) for evidence
 sources, degraded states, validation, and limitations.
 
 ## Trusted model-pack registration (v2.1 Phase 3A)
@@ -105,7 +105,7 @@ independently in batches, preserves supplied IDs and UTC timestamps, and emits
 `PredictionRecord` objects with uncalibrated model scores, queue bands, and
 `explanation_status="not_requested"`. These scores are not calibrated
 probabilities or production risk. Phase 3D adds uploaded-label review,
-ephemeral threshold simulation and explicit safe export; awaiting independent review.
+ephemeral threshold simulation and explicit safe export; merged through PR #5 with post-merge CI passing.
 
 ## Local CSV analysis, review and export (v2.1 Phases 3C–3D)
 
@@ -163,9 +163,61 @@ metrics null; CSV neutralizes spreadsheet formulas behind whitespace/control
 characters and properly quotes cells. Filenames are fixed. Analysis lifecycle
 and export-context changes discard prepared downloads. Built-in dataframe
 export/copy stays disabled. `explanation_status` remains `not_requested`.
-Phase 3D is implemented and awaiting independent review; Phase 4 follows its
-merge. These offline research predictions are separate from frozen evidence. See
+Phase 3D merged through PR #5 at `5305f0a`; post-merge CI passed. Local Phase 4
+attribution states are separate from this exported analysis snapshot. These offline research predictions are separate from frozen evidence. See
 [`docs/dashboard.md`](docs/dashboard.md) for lifecycle and queue semantics.
+
+## Bounded explainability and synthetic demonstration (v2.1 Phase 4)
+
+Phase 4 is implemented and awaiting independent review on
+`cids-v2.1-phase4-explainability-demo`; it is not merged or released. Phase 5
+follows only after Phase 4 merge.
+
+The **Synthetic feature sample** page previews/downloads eight deterministic,
+non-sensitive, non-realistic arithmetic rows on a clean clone. It supplies no
+hosts, IPs, timestamps or labels, copies no official data, and is not benchmark
+evidence. Upload [the CSV](samples/synthetic-features-v1.csv) on **Local CSV
+analysis** and explicitly choose **Analyze CSV**; predictions still require the
+original trusted pack. No demonstration model builder or broader trust rule is
+provided.
+
+Prepare development resources **outside the browser**, in the exact pinned
+Python 3.12.14 environment:
+
+```bash
+PYTHONPATH=src python -m cids.experiments.prepare_explanation_resources \
+  --pack-id "$CIDS_MODEL_PACK_ID" \
+  --training-csv /private/path/UNSW_NB15_training-set.csv \
+  --prepared-dir /private/path/prepared-development
+# Set the printed digest, then restart the dashboard:
+export CIDS_EXPLANATION_RESOURCE_ID="<printed-64-hex-resource-digest>"
+PYTHONPATH=src streamlit run dashboard/app.py
+```
+
+See [resource setup](docs/explanation-resources.md) for verified prepared-partition
+requirements and the explicitly approved CLI-only feature overlap-removal fallback
+when those partitions are absent. Runtime resources contain only bounded feature
+backgrounds and non-executable JSON, privately stored under ignored `artifacts/`.
+Add `--prepare-global` explicitly to compute separate source-feature permutation
+reliance on at most 256 development-validation rows (macro F1, 3 repeats, seed 42).
+This is in-development reliance, not held-out benchmark evidence; the final models
+were refit on train plus validation.
+
+**Explain selected record — binary** and **— multiclass** run only after explicit
+action, on one record each, using the verified loader and accepted SHAP 0.52.0
+PermutationExplainer. Raw `decision_function` units remain separate from
+uncalibrated scores. Baseline plus all 42 signed source contributions must
+reconstruct the output; binary always explains attack (even for a normal prediction),
+while multiclass explains the independent raw predicted family. Features
+*influenced this model output*; this is not causal or calibrated evidence.
+
+Fresh dedicated Python subprocess workers enforce 60 seconds per task with actual cancellation and bounded
+JSON IPC; no global model/data/explanation caches. Missing/tampered resources or
+worker/correctness failures leave analysis usable with honest unavailable/failed
+states. Replacement, removal, clear, reanalysis, failed analysis, selection and
+pack/resource changes discard stale attributions. Downloads retain the Phase 3D
+schema/allowlist and omit the new attribution data. See [sample limitations](samples/README.md)
+and [verification/visual QA](docs/dashboard.md).
 
 ## Current v2.0 capabilities
 

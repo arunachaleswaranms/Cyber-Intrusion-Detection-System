@@ -1,6 +1,6 @@
-# v2.1 evidence dashboard and local analysis (Phases 2 and 3C)
+# v2.1 evidence dashboard, local analysis and explainability (Phases 2–4)
 
-Status: **Evidence mode remains the default; opt-in Phase 3C analysis implemented**
+Status: **Phases 1–3 merged; Phase 4 implemented, awaiting independent review, not merged/released**
 
 The dashboard presents the frozen v2.0 benchmark and the accepted v2.1
 explanation gate. It reads committed, non-executable evidence, verifies it on
@@ -95,9 +95,10 @@ be unsealed.
 | Overview | Model identity, evidence health, stage legend, official-test headlines for both tasks, validation → test comparison with refit caveat, evaluation context, limitations |
 | Binary detection | Headline and secondary metrics, row-normalized confusion matrix with exact counts, per-class metrics, missed attacks by family, recorded timing with caveats |
 | Attack families | Headline metrics, flagged weaknesses (presentation rule shown on the page), precision/recall per class, 10×10 confusion matrix, largest misclassifications, binary detection versus family attribution |
-| Explainability | What SHAP values mean and do not mean, gate result and bounds, and an explicit statement that attributions are not available in evidence mode |
+| Explainability | Accepted method/gate evidence; explicitly loaded offline global development model reliance if configured; honest unavailable state otherwise |
 | Evidence & provenance | Component health, pinned files, recorded digests, dataset identity, run timestamps, model identity, data lineage, consistency checks, verification commands |
-| Local CSV analysis | Separate opt-in upload, explicit analysis, independent outputs, bounded queue filters/counts/order and single-record detail |
+| Local CSV analysis | Separate opt-in upload, explicit analysis/review/simulation/export and separately requested selected-record binary/family explanations |
+| Synthetic feature sample | Explicit preview/download of eight non-sensitive, non-realistic arithmetic rows, without models or datasets |
 
 ## Configure one registered pack outside the browser
 
@@ -211,8 +212,7 @@ repository must pass `--client.disableDataExport true`.
 Phase 3C did not infer errors from predictions. Phase 3D now adds uploaded-label
 review, ephemeral simulation and explicit export below. Without uploaded truth,
 predictions are never called measured detections or true/false positives.
-`explanation_status` stays `not_requested`. Phase 3D is implemented, awaiting
-independent review, not merged or released. Phase 4 follows Phase 3D merge;
+The original exported analysis snapshot's `explanation_status` stays `not_requested`; Phase 4 task-specific local states are separate. Phase 3D merged via PR #5 at `5305f0a`; all four post-merge CI jobs passed;
 packaging/release remain Phase 5.
 
 ## Uploaded-label review and ephemeral simulation
@@ -393,11 +393,113 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 - a matching edit to per-class and macro F1 is still detected, and a code defect
   in the consistency checks raises instead of being reported as bad evidence.
 
+## Phase 4 setup and behavior
+
+See [explanation resources](explanation-resources.md) for complete CLI preparation,
+source verification, approved feature-only overlap fallback, resource manifest,
+local commands, scoring metric, time limits and method limitations. There is no
+browser background upload/path/URL, trust acknowledgement or uploaded-data
+background shortcut. Required startup binding: `CIDS_EXPLANATION_RESOURCE_ID`, a
+canonical digest under `artifacts/v2.1/explanation-resources/`. Pack registration,
+trust/runtime checks, upload bounds, explicit analysis, loopback controls, disabled
+telemetry and the Phase 3D export schema/allowlist are preserved.
+
+Valid resources start `not_requested`. Each **Explain selected record — binary**
+or **— multiclass** action explains one selected record, never the entire upload.
+The method remains SHAP 0.52.0 PermutationExplainer on raw `decision_function`,
+Independent background (at most 256 prepared-training rows), one forward/reverse
+cycle, seed 42, 32-record service ceiling and 60 seconds per task. Dedicated Python subprocess workers
+are actually cancelled/reaped at the deadline; request/response JSON is bounded.
+All class shapes/finite values and full reconstruction/conservation checks pass
+before the 42-feature display. Binary describes attack output even for normal;
+multiclass describes the independent raw predicted family. Baseline/model output,
+class and signed contributions use raw decision units, separate from uncalibrated
+model scores. All 42 features are shown and omitted contribution is explicitly zero.
+
+Missing/tampered/incompatible resources produce `unsupported`. Timeout, worker or
+correctness failure produces `failed`, a fixed safe message and no attribution,
+while completed analysis, metrics, simulation and exports stay usable. Selection,
+input, pack, resource and analysis lifecycle changes clear stale explanation state.
+Every value binds input/pack/resource/background/policy/task/class/record identity;
+no global model, upload or explanation cache/persistence/logging exists.
+
+The **Synthetic feature sample** page offers explicit preview/download without
+models. [The eight-row sample](../samples/README.md) is synthetic, non-sensitive,
+non-realistic and not benchmark evidence; no official rows, labels, hosts, IPs or
+timestamps were supplied. Predictions require the original trusted pack; local
+explanations additionally require verified resources. No development model builder
+or provenance broadening is included.
+
+The Explainability page provides explicitly loaded offline **global model reliance**
+if CLI `--prepare-global` outputs exist. It identifies task, prepared-validation
+partition, sample size (at most 256), seed 42, 3 repeats, and macro F1 over all
+estimator classes (`zero_division=0`). Source features are permuted before encoding.
+The final models were refit on train plus validation, so this is in-development
+reliance, not a held-out result, local SHAP or causal evidence. Default evidence
+navigation never loads models/backgrounds or imports SHAP. Uploaded SHAP aggregates
+are never substituted. Phase 4 is implemented and awaiting independent review,
+not merged/released; Phase 5 follows only after Phase 4 merge.
+
+## Validation performed for Phase 4 (2026-10-04)
+
+Implementer verification, separate from the pending independent review:
+
+| Environment | Full suite | Exact skip reasons |
+|---|---|---|
+| Base | **439 passed / 65 skipped** | 53 Phase 3B pinned-model runtime tests; 5 Phase 4 pinned-runtime tests (2 representative workers, 2 resource publications, 1 original-resource integration); 2 SHAP module collection skips; 5 Streamlit collection/local-boundary skips |
+| Reproduction | **494 passed / 10 skipped** | 5 Streamlit collection/local-boundary skips; 2 SHAP module collection skips; 2 representative SHAP workers without SHAP; 1 missing original-development-resource integration |
+| Workbench | **505 passed / 6 skipped** | 5 Streamlit collection/local-boundary skips; 1 missing original-development-resource integration |
+| Dashboard | **591 passed / 1 skipped** | Original-model explanations: compatible verified frozen-development resources were not supplied |
+
+New Phase 4 focused suite: **127 passed / 1 skipped**, with that same optional
+original-resource skip. All four local environments used Python **3.12.14** and
+passed `python -m pip check`. Final full suites set `OMP_NUM_THREADS=1` and
+`OPENBLAS_NUM_THREADS=1` to avoid test-process oversubscription; no model parameters
+or dependency locks changed. `git diff --check` passed. The existing four CI jobs
+are unchanged (the base CI job separately runs Python 3.11).
+
+The final full suites supplied the existing checksum-verified training copy through
+`CIDS_PHASE3B_TRAINING_CSV` so the existing original-pack inference/UI regressions
+ran on **16 training-partition rows** in applicable pinned environments. A separate
+original verified pack smoke analyzed all **8 committed synthetic sample rows**,
+with stable synthetic IDs and no explanation requested. These are original-model
+**inference** checks; they are not original-model explanation integration.
+
+Both tasks' new explanation integrations used representative synthetic artifacts
+and explicit **test-only trust-anchor substitution**, while running the real
+verified loader, preprocessing, SHAP, resource checks and dedicated subprocess.
+A real AppTest action exercised both isolated workers after Streamlit's mutable
+main-script bootstrap; this found and fixed the multiprocessing re-entry failure.
+Additional tests cover class/shape/finiteness/reconstruction/full 42-feature
+conservation, every-class validation before selection, float-preserving JSON,
+32/256 bounds, resource identity/tampering/pack/runtime/provenance checks, explicit
+prepared-partition/feature-only-overlap preparation, private immutable publication,
+global scoring/provenance, timeout/partial-output/error/startup cleanup, late-result
+invalidation, selection/session isolation, plain-text uploaded identity, explicit
+UI/global actions and unchanged export bytes/allowlist. These checks do not prove
+original-model attribution outputs.
+
+No compatible frozen prepared partitions or original explanation resource bundle
+were present locally. No original-model SHAP or global reliance evidence was
+prepared; the corresponding optional integration was honestly skipped. No original official-test raw file or target was accessed, and no official-test
+foreground was predicted, explained or scored. Committed benchmark JSON was read
+as existing evidence without recomputation. Frozen configs, reports, gate evidence, model-pack manifests,
+acceptance rules and the Phase 3D export schema/allowlist were not changed.
+
+Chrome visual QA inspected the dark-theme synthetic sample preview/table, the
+Explainability page's method and global-unavailable messaging, and the no-pack
+analysis-unavailable page. A live loopback server returned `ok` from
+`/_stcore/health`; `lsof` confirmed **127.0.0.1:8504 only**. Populated local attribution
+and global-reliance views were exercised through AppTest, **not visually inspected
+in a real browser**; light theme/responsive attribution QA and original-resource
+integration remain unperformed. Clearing references is not secure memory erasure.
+Phase 4 is implemented and awaiting independent review; not merged or released.
+
 ## Validation performed for Phase 3D (2026-10-04)
 
 Implemented on `cids-v2.1-phase3d-review-export`, based on Phase 3C merge
-`9d81a3c4136f7062aca3c238c0d041e722dd1330`; awaiting independent review,
-not merged or released. No dependency or CI matrix changes.
+`9d81a3c4136f7062aca3c238c0d041e722dd1330`; historical pre-merge implementation verification.
+Phase 3D is now merged through PR #5 at `5305f0a`, with successful post-merge CI. No dependency or CI matrix changes.
 
 All four existing local environments ran Python **3.12.14**. Full suites used
 `CIDS_PHASE3B_TRAINING_CSV=/private/tmp/cids-phase3b-training.csv` to execute the
@@ -464,7 +566,7 @@ artifacts, original-pack gates skip with their stated reasons. This does not
 substitute for those executed local checks. AppTest covers interactions;
 Phase 3D real-browser visual QA remains unperformed. Clearing references is
 not memory erasure; scores are uncalibrated and upload provenance unverified.
-Phase 4 follows Phase 3D merge.
+Phase 3D subsequently merged via PR #5 at `5305f0a`; all four post-merge CI jobs passed in [run 37183225010](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37183225010).
 
 ## Validation performed for Phase 3C (2026-10-04)
 
@@ -547,8 +649,7 @@ passed in [CI run 37180576999](https://github.com/arunachaleswaranms/Cyber-Intru
   pinned runtime. Clean clones provide evidence mode and a disabled analysis
   page. Phase 3D sample review/simulation/export requires explicit local analysis
   and uploaded truth where applicable; it does not establish upload provenance.
-- No feature attributions. The gate report stores diagnostics only; global and
-  per-record explanations are Phase 4.
+- Per-record explanations need verified CLI-prepared development resources and the pinned runtime. Global reliance additionally needs explicit offline preparation; neither is fabricated when resources are missing. The gate remains diagnostics only. See [resource setup](explanation-resources.md).
 - The official-test report records artifact filenames but not artifact hashes;
   model digests shown come from the v2.1 gate.
 - The Apple Silicon reproduction record is not committed and cannot be displayed.

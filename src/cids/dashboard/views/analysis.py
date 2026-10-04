@@ -98,7 +98,7 @@ def _simulation(session, prefix):
 
 def _export(session, indices, order, prefix):
     st.subheader("Explicit research export")
-    st.caption("JSON is the default. Prepare only after choosing scope and format. Exports include prediction/review results and provenance; omit all raw features, model contents, filesystem paths and unrelated session data.")
+    st.caption("JSON is the default. Prepare only after choosing scope and format. Exports include prediction/review results and provenance; omit all raw features, model contents, filesystem paths, new attribution data and unrelated session data. The Phase 3D schema and original analysis snapshot are unchanged.")
     scope_label = st.selectbox("Export scope", ("Full analysis", "Current filtered review"), key=prefix + "export_scope")
     scope = "full_analysis" if scope_label == "Full analysis" else "current_filtered_review"
     format = st.selectbox("Export format", ("JSON", "CSV"), key=prefix + "export_format")
@@ -165,6 +165,13 @@ def render(session, repo_root, pack_id):
     if result is None:
         st.info("Select a valid CSV and choose Analyze CSV. Ordinary page views and filter changes do not load models or score records.")
         return
+    from cids.workbench.explanation_resources import load_resources, ResourceError
+
+    try:
+        resources = load_resources(repo_root, session.resource_binding, manifest)
+    except ResourceError:
+        resources = None
+    session.sync_explanation_resources(resources)
     # Completed results are reusable only with matching input digest and pack ID.
     if not analyzed:
         _warnings(result.warnings)
@@ -212,7 +219,7 @@ def render(session, repo_root, pack_id):
     if not indices:
         st.info("No records match these filters.")
     else:
-        _details(session, records, rows, indices, prefix)
+        _details(session, records, rows, indices, prefix, resources)
     if session.input_data.has_binary_labels:
         _sample_metrics(original_binary_metrics(session.input_data, records), "Original uploaded-sample binary review metrics")
     if session.input_data.has_family_labels:
@@ -225,7 +232,7 @@ def render(session, repo_root, pack_id):
     _export(session, indices, order_key[order], prefix)
 
 
-def _details(session, records, rows, indices, prefix):
+def _details(session, records, rows, indices, prefix, resources=None):
     pages = (len(indices) + PAGE_ROWS - 1) // PAGE_ROWS
     # Widget identity includes the filter context; old page and selection cannot survive it.
     context = str(tuple(indices))
@@ -238,7 +245,11 @@ def _details(session, records, rows, indices, prefix):
     record = records[selected]
     st.subheader("Selected record")
     st.dataframe(pd.DataFrame([_labels(_record_row(record, selected), rows[selected])]), hide_index=True)
-    st.caption("explanation_status: not_requested · Values longer than 200 characters are truncated for display; selection uses original row identity.")
+    st.caption("Original analysis snapshot explanation_status: not_requested · Values longer than 200 characters are truncated for display; selection uses original row identity.")
     # One aligned record, 42 features, bounded string cells.
     row = session.input_data.frame.iloc[selected]
     st.dataframe(pd.DataFrame([{"Feature": column, "Value": _bounded(row[column])} for column in FEATURE_COLUMNS]), hide_index=True)
+    session.select_explanation_record(selected)
+    from cids.dashboard.views.local_explanations import render as render_explanations
+
+    render_explanations(session, resources, prefix + str(selected))

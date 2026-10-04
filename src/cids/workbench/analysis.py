@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -131,8 +131,81 @@ class AnalysisSession:
     simulation: ThresholdSimulation | None = None
     prepared_export: bytes | None = None
     export_context: tuple | None = None
+    resource_binding: str | None = None
+    explanation_context: tuple | None = None
+    explanation_selection: int | None = None
+    explanations: dict = field(default_factory=dict)
+    explanation_states: dict = field(default_factory=dict)
+
+    def clear_explanations(self) -> None:
+        self.explanations.clear()
+        self.explanation_states.clear()
+        self.explanation_selection = None
+
+    def bind_explanation_resource(self, resource_id: str | None) -> None:
+        if resource_id != self.resource_binding:
+            self.clear_explanations()
+            self.explanation_context = None
+            self.resource_binding = resource_id
+
+    def sync_explanation_resources(self, resources) -> None:
+        from cids.workbench.config import workbench_config_sha256
+
+        context = (resources.resource_id if resources is not None else None,
+                   workbench_config_sha256(load_workbench_config()))
+        if context != self.explanation_context:
+            self.clear_explanations()
+            self.explanation_context = context
+
+    def select_explanation_record(self, index: int) -> None:
+        if index != self.explanation_selection:
+            self.clear_explanations()
+            self.explanation_selection = index
+
+    def explanation_status(self, task: str) -> str:
+        if self.explanation_context is None or self.explanation_context[0] is None:
+            return "unsupported"
+        return self.explanation_states.get(task, "not_requested")
+
+    def explain_selected(self, task: str, resources) -> None:
+        """Call only on an explicit action; failure preserves the analysis snapshot."""
+        self.explanations.pop(task, None)
+        if resources is None or self.explanation_context is None or self.explanation_context[0] != resources.resource_id:
+            self.explanation_states[task] = "unsupported"
+            return
+        self.explanation_states[task] = "failed"
+        action_context = (self.revision, self.explanation_context, self.explanation_selection)
+        try:
+            from cids.workbench.explanation_service import request_explanations
+
+            result = self.current_result()
+            if result is None or self.explanation_selection is None:
+                return
+            index = self.explanation_selection
+            values = request_explanations(Path(self.binding[0]), self.input_data, result,
+                                          resources, task, [index])
+            value = values[0]
+            from cids.workbench.config import workbench_config_sha256
+
+            if (action_context != (self.revision, self.explanation_context, self.explanation_selection)
+                    or self.current_result() is not result):
+                return
+            if (len(values) != 1 or value.input_sha256 != result.input_sha256
+                    or value.model_pack_id != result.model_pack_id or value.resource_id != resources.resource_id
+                    or value.policy_sha256 != workbench_config_sha256(load_workbench_config())
+                    or value.background_sha256 != resources.manifest["tasks"][task]["background"]["sha256"]
+                    or value.explained_class != ("attack" if task == "binary" else result.records[index].family_prediction_raw)
+                    or value.task != task or value.record_index != index or value.record_id != result.records[index].record_id):
+                return
+            self.explanations[task] = value
+            self.explanation_states[task] = "available"
+        except Exception:
+            if action_context == (self.revision, self.explanation_context, self.explanation_selection):
+                self.explanations.pop(task, None)
+                self.explanation_states[task] = "failed"
 
     def clear_derivatives(self) -> None:
+        self.clear_explanations()
         self.simulation = None
         self.prepared_export = None
         self.export_context = None

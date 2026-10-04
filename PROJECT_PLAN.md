@@ -37,7 +37,7 @@ or representative of modern traffic.
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
-| Automated tests | All four GitHub Actions jobs (`test` on Python 3.11, `reproduction-environment`, `workbench-phase-1`, `dashboard-phase-2`) passed on merge commit `9d72ad1`, including the repaired Python 3.11 `test` job. Independent verification: base environment 180 passed, 3 skipped; complete dashboard environment 224 passed; `pip check` passed |
+| Automated tests | All four post-merge CI jobs passed at Phase 3D merge `5305f0a` in run `37183225010`. Phase 4 local suites: base 439 passed / 65 skipped; reproduction 494 / 10; workbench 505 / 6; dashboard 591 / 1. Phase 4 independent review is pending |
 | Phase 3B local verification | Base 247 passed, 34 skipped (30 pinned-runtime tests, 2 SHAP and 2 Streamlit); reproduction 277 passed, 4 skipped (2 SHAP and 2 Streamlit); workbench 286 passed, 2 skipped (Streamlit); dashboard 322 passed. The ignored real pack passed 16 checksum-verified training rows. Dashboard `pip check`, all four environment dependency checks, and `git diff --check` passed |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
@@ -57,9 +57,10 @@ or representative of modern traffic.
 | v2.1 dashboard | Phase 2 evidence mode merged to `main` by PR #1 at `9d72ad1`; see `docs/dashboard.md`. Streamlit server health check passed with the server bound to `127.0.0.1` |
 | Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
 | v2.1 model pack | Phase 3A registration and Phase 3B verified loading/inference implemented. The ignored local pack `e2d4f329…2b18` passed exact-buffer loading and bounded inference on 16 checksum-verified training-partition rows; no official-test data or metrics were accessed. Phase 3C adds an explicit opt-in bounded CSV analysis page; default evidence navigation does not load models |
-| Phase 3D handoff | Implemented on `cids-v2.1-phase3d-review-export`; awaiting independent review. Local matrix: base 325 passed / 59 skipped; reproduction 378 / 6; workbench 387 / 4; dashboard 464 / 0. Focused 188 / 0; four dependency checks passed |
+| Phase 3D handoff | Merged through PR #5 at `5305f0a317164c24e81631abbc2a870498e0ac7f`; all four post-merge CI jobs passed in run `37183225010`. Historical local verification: Local matrix: base 325 passed / 59 skipped; reproduction 378 / 6; workbench 387 / 4; dashboard 464 / 0. Focused 188 / 0; four dependency checks passed |
 | Phase 3C handoff | Merged through PR #4 at `9d81a3c4136f7062aca3c238c0d041e722dd1330`; independent review had no blocking findings; all four post-merge CI jobs passed |
-| Next milestone | Phase 4 after Phase 3D independent review and merge; Phase 3D implemented, awaiting independent review |
+| Phase 4 handoff | Implemented, awaiting independent review on `cids-v2.1-phase4-explainability-demo`; focused 127 passed / 1 skipped, four dependency checks and diff check passed. Original-model explanations skipped for absent verified development resources |
+| Next milestone | Phase 4 independent review and merge; Phase 5 only after Phase 4 merge |
 
 ## Phase 3C implementation and verification (2026-10-04)
 
@@ -106,8 +107,9 @@ All four post-merge jobs passed in [CI run 37180576999](https://github.com/aruna
 ## Phase 3D implementation (2026-10-04)
 
 Branch: `cids-v2.1-phase3d-review-export`, based on current `origin/main`
-`9d81a3c4136f7062aca3c238c0d041e722dd1330`. Implemented and awaiting
-independent review; no PR, merge, tag or release. Phase 4 follows Phase 3D merge.
+`9d81a3c4136f7062aca3c238c0d041e722dd1330`. Subsequently merged through PR #5
+at `5305f0a317164c24e81631abbc2a870498e0ac7f`. All four post-merge CI jobs passed
+in [run 37183225010](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37183225010). Historical implementation details follow.
 
 - Framework-independent `review.py` uses uploaded `label` for TP/TN/FP/FN
   and explicit-denominator sample metrics. Uploaded `attack_cat` independently
@@ -133,6 +135,60 @@ independent review; no PR, merge, tag or release. Phase 4 follows Phase 3D merge
 - No new dependency, retraining, calibration, frozen-file change, official-test
   evaluation, SHAP implementation, demonstration, Docker or release work.
   Verification and exact environment counts are in [dashboard.md](docs/dashboard.md).
+
+## Phase 4 implementation (2026-10-04)
+
+Branch: `cids-v2.1-phase4-explainability-demo`, based on current `origin/main`
+`5305f0a317164c24e81631abbc2a870498e0ac7f`, including Phase 3D PR #5. Implemented
+and awaiting independent review; not merged or released. Phase 5 follows only
+after Phase 4 merge. [Setup/contracts](docs/explanation-resources.md) and
+[verification](docs/dashboard.md) describe the evidence and limitations.
+
+- Reused the accepted SHAP 0.52.0 permutation method and source mapping. Explicit
+  one-record task actions explain raw binary attack output (also for normal
+  predictions) or the independent raw predicted family. All class dimensions and
+  finite values, reconstruction (`1e-5`) and full source conservation (`1e-10`)
+  validate before exposing all 42 signed contributions/baseline/output/class.
+- CLI-only deterministic frozen prepared-training backgrounds, private feature-only
+  CSVs and versioned manifest bound to hashes, pack/artifact/runtime, schema, policy,
+  seed, training/split provenance and sampling. Verified prepared partitions are
+  preferred and matched to verified training source rows; only explicit feature-only
+  official-test overlap removal can reconstruct them. No test IDs/targets parsed,
+  no test foreground prediction/explanation/scoring/tuning or changed frozen evidence.
+- Fresh dedicated Python subprocess worker per action, ≤32 service rows, ≤256 background rows, bounded
+  JSON IPC and actual 60-second cancellation/reaping (including stalled IPC).
+  Input/pack/resource/background/policy/task/class/record binding and session
+  lifecycle/selection clearing. Missing or failed explanations leave existing
+  analysis/review/simulation/export usable. No application data persistence/logging
+  or global model/upload/explanation caches.
+- Separate explicit offline global source-feature permutation reliance on ≤256
+  prepared-validation rows, macro F1 over all estimator classes, zero_division=0,
+  3 repeats and seed 42. In-development reliance because final models were refit
+  on train plus validation; distinct from frozen benchmarks and local SHAP. No
+  uploaded-SHAP aggregation; default evidence pages import/load neither SHAP nor
+  runtime resources.
+- Committed eight deterministic arithmetic feature rows: synthetic, non-sensitive,
+  non-realistic, no official copies, labels, hosts, IPs or timestamps. Clean-clone
+  explicit preview/download; trusted models/resources still required for analysis/
+  explanations. No demonstration model builder or broadened provenance acceptance.
+- Preserved Phase 3D export schema/allowlist and original snapshot; new attributions
+  and observed features remain omitted. Strict upload/explicit analysis/session/
+  stale-state/safe-export/loopback/telemetry controls retained. No retraining,
+  calibration, official-test run, gate rerun, Docker, release or Phase 5 work.
+
+Phase 4 verification: **base 439 passed / 65 skipped; reproduction 494 / 10;
+workbench 505 / 6; dashboard 591 / 1**. New focused suite: **127 passed / 1 skipped**.
+All four Python 3.12.14 environments passed dependency checks; `git diff --check`
+passed. Exact skips and test-environment thread limits are in [dashboard verification](docs/dashboard.md).
+Original-pack inference regressions used 16 checksum-verified training rows; the
+original pack additionally analyzed the eight committed synthetic rows. Original
+explanation/global-resource integration remains unperformed because compatible
+verified prepared partitions/backgrounds are absent. Representative synthetic
+workers and real AppTest actions passed with test-only anchors. Chrome inspected
+the synthetic preview and unavailable states; populated attribution/global views
+were tested with AppTest but not visually inspected in a browser. No original
+official-test raw file was accessed or rescored and no frozen config/evidence/gate,
+model-pack acceptance rule or export allowlist changed.
 
 ## Release roadmap
 
@@ -188,7 +244,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–2 and 3A–3D implemented; Phase 3D awaiting independent review, not merged or released**
+Status: **Phases 1–3 merged; Phase 4 implemented and awaiting independent review, not merged/released**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -209,14 +265,14 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
   - [x] Phase 3A: trusted final-model-pack registration and preflight.
   - [x] Phase 3B: verified deserialization and framework-independent inference.
   - [x] Phase 3C: bounded CSV analysis UI and review queue (merged by PR #4 at `9d81a3c`; post-merge CI passed).
-  - [x] Phase 3D: label-backed review, ephemeral threshold simulation, and safe export (implemented; awaiting independent review, not merged or released).
-- [ ] Phase 4: implement the approved explanation path and synthetic sample.
+  - [x] Phase 3D: label-backed review, ephemeral threshold simulation, and safe export (merged by PR #5 at `5305f0a`; post-merge CI passed).
+- [x] Phase 4: implement the approved explanation path and synthetic sample (awaiting independent review, not merged/released).
 - [ ] Phase 5: add Docker, non-root packaging, container health checks, and
       release checks (the pinned dashboard lock and Streamlit `AppTest` coverage
       already shipped in Phase 2).
 
 Exit criteria: a reviewer can run the dashboard locally, analyze safe sample
-data, understand why detections occurred, and inspect false positives.
+data, inspect features that influenced each model output, and review measured false positives.
 
 ### v3.0 — PCAP-to-alert research workflow
 

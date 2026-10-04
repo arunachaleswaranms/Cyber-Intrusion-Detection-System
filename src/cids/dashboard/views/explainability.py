@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import pandas as pd
 import streamlit as st
 
@@ -126,11 +127,11 @@ def _gate(catalog: EvidenceCatalog) -> None:
 def _availability(catalog: EvidenceCatalog) -> None:
     st.header("Feature attributions")
     message = (
-        "**Global feature importance and per-record contributions are not available "
-        "in evidence mode.** The committed gate report stores correctness and resource "
+        "**Attribution values are not available in evidence mode by default.** "
+        "The committed gate report stores correctness and resource "
         "diagnostics only; it contains no attribution values. Producing attributions "
-        "requires the local trusted model artifacts and dataset, which evidence mode "
-        "never loads."
+        "requires the local trusted pack and CLI-prepared development resources. "
+        "Default evidence navigation never loads models or backgrounds."
     )
     if catalog.gate is not None:
         rows = max(task.explained_rows for task in catalog.gate.tasks.values())
@@ -140,11 +141,52 @@ def _availability(catalog: EvidenceCatalog) -> None:
         )
     st.warning(message, icon=":material/visibility_off:")
     st.markdown(
-        "The v2.1 design schedules global and per-record explanation views for "
-        "**Phase 4**, after trusted local inference exists (Phase 3). When added, "
-        "they must state the dataset and records they were computed on and use "
-        "*influenced this model output* wording."
+        "Phase 4 provides explicit selected-record actions on Local CSV analysis "
+        "after verified background preparation. Features *influenced this model output*. "
+        "The historical gate is preserved and is never rerun by the dashboard."
     )
+
+
+def _global_reliance(catalog):
+    st.header("Offline global model reliance")
+    st.caption("Source-feature permutation importance on bounded deterministic development validation data only. Distinct from frozen benchmarks and per-record SHAP; uploaded SHAP values never provide this view. Final models were refit on train plus validation, so this is in-development reliance, not a held-out generalization estimate or causal evidence.")
+    from cids.workbench.analysis import PACK_ENV
+    from cids.workbench.explanation_resources import RESOURCE_ENV
+
+    pack_id, resource_id = os.environ.get(PACK_ENV), os.environ.get(RESOURCE_ENV)
+    if not pack_id or not resource_id:
+        st.info("Global model reliance unavailable: configure a trusted pack and CLI-prepared resources with global evidence. Default evidence navigation loads neither models nor backgrounds.")
+        return
+    if st.get_option("client.disableDataExport") is not True:
+        st.warning("Global model reliance unavailable: built-in table data export must be disabled.")
+        return
+    key = "global_reliance_requested_" + str((str(catalog.repo_root), pack_id, resource_id))
+    if st.button("Load configured global model reliance"):
+        st.session_state[key] = True
+    if not st.session_state.get(key, False):
+        st.info("Global model reliance has not been requested. Prepare it explicitly offline with --prepare-global, then choose Load configured global model reliance.")
+        return
+    from cids.workbench.analysis import preflight_binding
+    from cids.workbench.explanation_resources import load_resources
+
+    try:
+        verified = preflight_binding(catalog.repo_root, pack_id)
+        resources = load_resources(catalog.repo_root, resource_id, verified.manifest)
+    except Exception:
+        st.warning("Global model reliance unavailable: the configured resources, pack binding or runtime failed verification.")
+        return
+    st.caption(f"Resource digest: {resources.resource_id} · Pack: {pack_id}")
+    for task in ("binary", "multiclass"):
+        st.subheader(TASK_TITLES[task] + " — global model reliance")
+        value = resources.global_reliance.get(task)
+        if value is None:
+            st.info("Unavailable: no offline global evidence was prepared for this task.")
+            continue
+        st.json({"task": task, "sample_size": value["sample_rows"], "policy": value["policy"],
+                 "baseline_macro_f1": value["baseline_score"],
+                 "development_provenance": resources.manifest["tasks"][task]["provenance"]})
+        st.caption("Mean decrease in macro F1 over all estimator classes (zero_division=0), 3 repeats, seed 42. Negative decreases can occur. All 42 original features are individually permuted before encoding.")
+        st.dataframe(pd.DataFrame(value["features"]).sort_values("mean_score_decrease", ascending=False, kind="stable"), hide_index=True)
 
 
 def render(catalog: EvidenceCatalog) -> None:
@@ -167,3 +209,4 @@ def render(catalog: EvidenceCatalog) -> None:
             icon=":material/info:",
         )
     _availability(catalog)
+    _global_reliance(catalog)
