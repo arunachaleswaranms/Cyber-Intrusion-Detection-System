@@ -208,11 +208,124 @@ by `client.disableDataExport = true`. The analysis page refuses to render data
 if that control is off, and clears previous results. Launches from outside the
 repository must pass `--client.disableDataExport true`.
 
-No uploaded prediction is called a true/false positive or measured detection.
-There are no label-backed errors, threshold controls, exports or attribution
-controls; `explanation_status` stays `not_requested`. Phase 3D is the next
-milestone after Phase 3C PR merge and has not started. Explanations remain
-Phase 4; packaging/release remain Phase 5.
+Phase 3C did not infer errors from predictions. Phase 3D now adds uploaded-label
+review, ephemeral simulation and explicit export below. Without uploaded truth,
+predictions are never called measured detections or true/false positives.
+`explanation_status` stays `not_requested`. Phase 3D is implemented, awaiting
+independent review, not merged or released. Phase 4 follows Phase 3D merge;
+packaging/release remain Phase 5.
+
+## Uploaded-label review and ephemeral simulation
+
+All new measured metrics are **derived from the uploaded sample**, separate
+from frozen benchmark evidence. Binary review requires uploaded `label` (0 =
+normal, 1 = attack); it shows TP/TN/FP/FN counts and a 2×2 confusion matrix
+(actual normal/attack rows, predicted normal/attack columns). Full-sample
+metrics include explicit numerators and denominators:
+
+| Metric | Numerator | Denominator |
+|---|---|---|
+| Precision | TP | TP + FP (predicted attacks) |
+| Recall | TP | TP + FN (actual attacks) |
+| F1 | 2 × TP | 2 × TP + FP + FN |
+| FPR | FP | FP + TN (actual normals) |
+| FNR | FN | FN + TP (actual attacks) |
+
+A zero denominator means **Unavailable**, with an explanation, never a silent
+zero. Single-class samples retain their defined rates; undefined ones remain
+unavailable. Defined zero recall/F1 is still zero when its denominator is positive.
+Metrics cover the full upload and do not change with review filters.
+
+Family review independently requires uploaded `attack_cat`. It compares actual
+family against `family_prediction_raw`, even for binary-normal rows; it never
+uses binary-gated triage family. Counts and per-record correct/misclassified
+categories are sample-derived. Family-only input does not synthesize binary
+labels. Neither column means prediction review only, without measured-error or
+threshold controls. Actual/predicted labels, binary/family categories, bands,
+inclusive attack-score range and disagreement filters compose on original row
+indices. Ordering, 200-row pages, timestamps and bounded detail preserve alignment.
+
+**Ephemeral, sample-specific threshold simulation** is enabled only with
+uploaded binary labels. It uses completed attack model scores on the **full
+current uploaded sample**, including filtered-out records, to show simulated
+alerts, confusion matrix and the same explicit-denominator metrics. The pinned
+scikit-learn 1.8.0 `HistGradientBoostingClassifier.predict` implementation was
+inspected: classes `(0, 1)`, raw margin strictly `> 0`, exact ties normal. The
+binary sigmoid score boundary is **0.50**. Simulation starts there and uses
+`attack_model_score > threshold`; score equality is normal. It compares stored
+scores only; floating-point sigmoid rounding near 0.50 can differ from the
+estimator's raw-margin decision. Original predictions remain authoritative.
+The separate frozen **0.90** queue boundary remains unchanged.
+
+**Reset simulation to baseline** restores 0.50. No model is loaded or scored
+for review, simulation or export reruns. No predictions, review categories,
+queue bands, fitted models, configuration or evidence are mutated. Scores are
+uncalibrated; this is not an optimal-threshold recommendation. No official-test
+partition is read or scored in these checks. The page warns against uploading
+official-test rows or selecting thresholds using benchmark evidence. Arbitrary
+feature rows alone cannot establish uploaded-data provenance.
+
+## Explicit JSON/CSV export contract
+
+Choose **Export scope**, **Export format** (JSON by default), and optionally
+**Include ephemeral simulation in export**, then **Prepare export**. Only this
+explicit action generates bytes. A dedicated **Download prepared JSON/CSV**
+control then appears. Built-in dataframe download/copy remains disabled and
+fail-closed. No upload filename becomes an application path; fixed download
+names are `cids-review.json` and `cids-review.csv`.
+
+`full_analysis` exports original sequence order. `current_filtered_review`
+exports all matching pages in the current stable review order, including zero
+matches. Export controls state the scope/count; selected detail and page do
+not limit export. Changing scope, format, applicable filters/order or simulation
+discards stale prepared bytes and download state. All analysis transitions
+(replacement including same bytes/new upload and invalid replacement, removal,
+clear, explicit reanalysis, validation/inference failure and changed/invalid
+pack binding) clear simulation and prepared exports. A new analysis starts at
+baseline. Sessions share no application-owned upload/result/export state.
+Bytes are held in session memory and served through Streamlit's memory download
+mechanism; no application logging, disk persistence or global data caching.
+Clearing references does not securely erase Python/Streamlit/allocator copies.
+Downloaded files are under the user's control.
+
+The `cids-review-export-v1` allowlist is defined by `METADATA_FIELDS` and
+`RECORD_FIELDS` in `src/cids/workbench/export.py`:
+
+| Metadata fields | Meaning |
+|---|---|
+| `export_schema_version`, `input_sha256`, `model_pack_id`, `provenance_type` | Version and binding; pack provenance is `maintainer_final_v2`, not an uploaded-data provenance claim |
+| `export_scope`, `record_count`, `full_analysis_record_count`, `ordering` | Explicit exported scope/count versus full upload, stable ordering |
+| `notices` | Research/uncalibrated-score, provenance, undefined-metric and memory/CSV limitations |
+| `original_sample_metrics`, `exported_scope_metrics` | Original binary metrics for full upload and exported scope; null without binary truth |
+| `simulation` | Optional ephemeral report with threshold, baseline, strict comparison rule, full-sample scope, alert count and sample metrics; null when omitted |
+
+| Per-record fields | Meaning |
+|---|---|
+| `record_sequence`, `record_id`, `event_time_utc` | Original 1-based sequence, stable full ID, supplied normalized UTC time or null |
+| `binary_prediction`, `attack_model_score` | Original binary prediction and uncalibrated attack score |
+| `family_prediction_raw`, `family_model_score`, `triage_family` | Independent raw family, its uncalibrated score and separate frozen triage result |
+| `queue_band`, `models_disagree`, `explanation_status` | Frozen band, both-direction disagreement and `not_requested` |
+| `actual_binary_label`, `binary_error`, `actual_family_label`, `family_error` | Only uploaded truth and its independent review categories; null without corresponding truth |
+| `simulated_binary_decision` | Separate optional 0/1 decision at the exported simulation threshold; null when omitted |
+
+All 42 raw features, contributions, model/artifact contents, filesystem paths,
+upload filenames and unrelated session data are omitted. Original outputs stay
+distinct from simulated decisions. Reports include count/matrix/metric metadata;
+each undefined metric `value` is JSON `null` with a zero denominator and reason,
+meaning unavailable, not measured zero. JSON uses strict `allow_nan=False`;
+NaN/Infinity are rejected, never emitted.
+
+CSV repeats allowlisted metadata in each record row; nested notices/metric/
+simulation objects use strict JSON within quoted cells. A zero-match export
+contains one metadata-only CSV row with count 0 and empty record fields. Missing
+per-record values are empty cells; undefined metrics remain null inside the
+nested JSON. Every string cell passes formula neutralization: an apostrophe is
+prefixed for `=`, `+`, `-`, `@`, tab or carriage return, including initiators
+behind leading Unicode whitespace/control characters. Genuine typed numeric
+fields stay numeric representations, without apostrophes. Standard CSV quoting
+handles quotes, delimiters and embedded line breaks. JSON preserves original
+IDs; sanitized CSV IDs may gain an apostrophe. Downstream spreadsheets/tools
+may transform safeguards, so JSON remains the default.
 
 ## Degraded states
 
@@ -248,7 +361,9 @@ src/cids/workbench/              # Framework-independent services
 ├── reporting.py                 # Stages, metric definitions, traceable values
 ├── confusion.py                 # Confusion matrices and consistency checks
 ├── formatting.py                # Deterministic text formatting
-└── analysis.py                  # Session lifecycle, binding and bounded queue indices (3C)
+├── analysis.py                  # Session lifecycle, binding and bounded queue indices
+├── review.py                    # Uploaded-label review and score-only simulation (3D)
+└── export.py                    # Allowlisted in-memory JSON/CSV serialization (3D)
 ```
 
 The design document placed page code in `dashboard/`; it lives in
@@ -264,7 +379,8 @@ cached, so an on-disk change can never be masked by stale memory.
 pytest -q
 ```
 
-Non-UI logic is tested in every CI environment. `tests/test_dashboard_app.py` and `tests/test_dashboard_analysis.py`
+Non-UI logic is tested in every CI environment. `tests/test_dashboard_app.py`,
+`tests/test_dashboard_analysis.py` and `tests/test_dashboard_review_export.py`
 use Streamlit's `AppTest` to render every page from committed evidence and in
 degraded states; it is skipped where Streamlit is not installed and runs in the
 `dashboard-phase-2` CI job. The tests also check that:
@@ -276,6 +392,79 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 - the app refuses to render when bound beyond loopback or with telemetry on;
 - a matching edit to per-class and macro F1 is still detected, and a code defect
   in the consistency checks raises instead of being reported as bad evidence.
+
+## Validation performed for Phase 3D (2026-10-04)
+
+Implemented on `cids-v2.1-phase3d-review-export`, based on Phase 3C merge
+`9d81a3c4136f7062aca3c238c0d041e722dd1330`; awaiting independent review,
+not merged or released. No dependency or CI matrix changes.
+
+All four existing local environments ran Python **3.12.14**. Full suites used
+`CIDS_PHASE3B_TRAINING_CSV=/private/tmp/cids-phase3b-training.csv` to execute the
+optional original-pack training-row gates in pinned environments.
+
+| Environment | Full suite | Exact skips |
+|---|---|---|
+| Base (`/private/tmp/cids-phase3b-base`) | 325 passed, 59 skipped | 53 pinned-runtime model cases; 4 Streamlit modules/checks; 2 SHAP modules/checks |
+| Reproduction (`/private/tmp/cids-phase3b-reproduction`) | 378 passed, 6 skipped | 4 Streamlit modules/checks; 2 SHAP modules/checks |
+| Workbench (`/private/tmp/cids-phase3b-workbench`) | 387 passed, 4 skipped | 4 Streamlit modules/checks |
+| Dashboard (`/private/tmp/cids-phase3b-dashboard`) | 464 passed, no skips | None |
+
+Streamlit skips are `test_dashboard_app.py`, `test_dashboard_analysis.py`,
+`test_dashboard_review_export.py`, and the dashboard-control check in
+`test_workbench_model_pack_registration.py`. SHAP skips are
+`test_workbench_explanations.py` and the gate-version check in
+`test_workbench_gate_evidence.py`. Base runtime skips are the same 53 cases in
+`test_workbench_inference.py`: base model libraries do not match the pack lock.
+These local base results use Python 3.12.14; the preserved GitHub `test` job
+provides Python 3.11 coverage on the pushed head.
+
+Focused contract/session/review/export/UI/inference suite: **188 passed, no
+skips**. This includes all truth-column combinations, known binary matrices,
+independent family errors, undefined and defined-zero rates, exact estimator
+tie behavior, score boundaries/reset, unchanged original records, composed
+filters/sorting/pagination/detail, explicit exports/default JSON, allowlists,
+provenance/scope, strict JSON, adversarial CSV IDs and whitespace/control
+variants, all lifecycle transitions, cross-session isolation and no extra
+loading/scoring on display/simulation/export reruns. Existing evidence-only
+clean-root navigation and loopback/telemetry/export guards remain covered.
+One pre-existing AppTest fixture was corrected to restore real preflight
+regardless of module execution order.
+
+All four environments passed `python -m pip check`. Full suites passed with
+one existing loky physical-core-discovery warning each; reproduction also
+emitted 46 sklearn parallel-configuration warnings (47 warnings total). These
+are warnings, not failures/skips. Dependency checks emitted only the local
+non-writable pip-cache warning. `git diff --check` passed. Frozen configurations,
+results/evidence, dataset manifest, dependency locks and workflow were unchanged.
+
+The ignored registered original pack
+`e2d4f329b894a1b68b70af377ffc94441e02d024de27e7c351384d3e25692b18`
+passed direct/UI equality on **16 training-partition rows**. The training copy
+was verified at 32,293,018 bytes and SHA-256
+`bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa`
+before parsing. The UI then exercised simulation/reset/export with loading and
+scoring forbidden and preserved the same original result. Synthetic fixtures
+cover the rest; no official-test rows were read, scored or used for tuning.
+
+Reproduce focused checks in the pinned dashboard environment:
+
+```bash
+python -m pytest -q tests/test_workbench_contracts.py \
+  tests/test_workbench_analysis.py tests/test_workbench_review.py \
+  tests/test_workbench_export.py tests/test_workbench_inference.py \
+  tests/test_dashboard_analysis.py tests/test_dashboard_review_export.py
+python -m pytest -q -ra
+python -m pip check
+git diff --check
+```
+
+Without the optional explicitly verified training copy and local registered
+artifacts, original-pack gates skip with their stated reasons. This does not
+substitute for those executed local checks. AppTest covers interactions;
+Phase 3D real-browser visual QA remains unperformed. Clearing references is
+not memory erasure; scores are uncalibrated and upload provenance unverified.
+Phase 4 follows Phase 3D merge.
 
 ## Validation performed for Phase 3C (2026-10-04)
 
@@ -328,8 +517,9 @@ All four GitHub CI jobs (`test`, `reproduction-environment`, `workbench-phase-1`
 `dashboard-phase-2`) passed on that commit. The independent reviewer could not
 repeat original-model integration checks requiring ignored local artifacts;
 the original-pack checks above remain separately reported by the implementer.
-New-page browser visual QA remains unperformed. Phase 3C awaits PR merge;
-Phase 3D is next after merge and has not started.
+New-page browser visual QA remains unperformed. Phase 3C merged through PR #4
+at `9d81a3c4136f7062aca3c238c0d041e722dd1330`; all four post-merge CI jobs
+passed in [CI run 37180576999](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37180576999).
 
 ## Validation performed for Phase 2
 
@@ -355,7 +545,8 @@ Phase 3D is next after merge and has not started.
 
 - Local analysis requires an already registered original pack and the exact
   pinned runtime. Clean clones provide evidence mode and a disabled analysis
-  page. No label-backed error review, threshold simulation or export (3D).
+  page. Phase 3D sample review/simulation/export requires explicit local analysis
+  and uploaded truth where applicable; it does not establish upload provenance.
 - No feature attributions. The gate report stores diagnostics only; global and
   per-record explanations are Phase 4.
 - The official-test report records artifact filenames but not artifact hashes;

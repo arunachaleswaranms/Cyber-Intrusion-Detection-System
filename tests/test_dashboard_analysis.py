@@ -57,12 +57,14 @@ def run(root=ROOT):
 
 @pytest.fixture
 def available(monkeypatch):
+    # Import the adapter before patching its imported binding function, so
+    # monkeypatch teardown restores the real preflight regardless of test order.
+    from cids.dashboard.views import analysis as view
     monkeypatch.setenv(analysis.PACK_ENV, PACK_ID)
     manifest = {key: {} for key in ("runtime", "contracts", "artifacts")}
     manifest.update(model_pack_id=PACK_ID, provenance_type="maintainer_final_v2",
                     created_at_utc="2026-10-04T00:00:00Z", creation_config_sha256="b" * 64)
     monkeypatch.setattr(analysis, "preflight_binding", lambda *_: SimpleNamespace(manifest=manifest))
-    from cids.dashboard.views import analysis as view
     monkeypatch.setattr(view, "preflight_binding", lambda *_: SimpleNamespace(manifest=manifest))
     calls = []
     def load(_):
@@ -299,7 +301,7 @@ def test_local_original_pack_ui_matches_direct_training_inference(monkeypatch):
     if not directory.is_dir():
         pytest.skip("registered original pack is unavailable for Phase 3C UI integration")
     from cids.datasets.unsw_nb15 import FEATURE_COLUMNS
-    rows = pd.read_csv(training, nrows=16, usecols=["id", *FEATURE_COLUMNS], dtype={"id": str})
+    rows = pd.read_csv(training, nrows=16, usecols=["id", *FEATURE_COLUMNS, "label", "attack_cat"], dtype={"id": str})
     data = payload(rows)
     direct = inference.infer(inference.load_model_pack(directory), analysis.parse_inference_csv(data))
     monkeypatch.setenv(analysis.PACK_ENV, original_id)
@@ -309,6 +311,19 @@ def test_local_original_pack_ui_matches_direct_training_inference(monkeypatch):
     assert not app.error
     app.run()
     assert app.session_state.local_analysis.current_result() is result
+    # Phase 3D original-pack gate: subsequent review/simulation/export must use
+    # the completed results only, with no artifact load or scoring.
+    def refuse(*_):
+        pytest.fail("review/simulation/export must not load or score models")
+    monkeypatch.setattr(inference, "load_model_pack", refuse)
+    monkeypatch.setattr(inference, "infer", refuse)
+    app.slider[0].set_value(.9).run()
+    button(app, "Reset simulation to baseline").click().run()
+    button(app, "Prepare export").click().run()
+    document = json.loads(app.session_state.local_analysis.prepared_export)
+    assert document["record_count"] == 16 and document["input_sha256"] == result.input_sha256
+    assert app.session_state.local_analysis.current_result() is result
+    assert not app.exception
 
 
 def test_analysis_refuses_builtin_data_export_and_clears_prior_results(available):

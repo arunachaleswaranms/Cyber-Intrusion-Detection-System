@@ -10,7 +10,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import pandas as pd
 
@@ -22,6 +22,9 @@ PACK_ENV = "CIDS_MODEL_PACK_ID"
 PACK_ROOT = Path("artifacts/v2.1/model-packs")
 QUEUE_BANDS = ("not_alerted", "review", "higher_score_review", "model_disagreement")
 PAGE_ROWS = 200
+
+if TYPE_CHECKING:
+    from cids.workbench.review import ThresholdSimulation
 
 
 class AnalysisUnavailable(ValueError):
@@ -125,8 +128,46 @@ class AnalysisSession:
     revision: int = 0
     uploader_epoch: int = 0
     upload_identity: tuple | None = None
+    simulation: ThresholdSimulation | None = None
+    prepared_export: bytes | None = None
+    export_context: tuple | None = None
+
+    def clear_derivatives(self) -> None:
+        self.simulation = None
+        self.prepared_export = None
+        self.export_context = None
+
+    def simulate(self, threshold: float = 0.5) -> None:
+        from cids.workbench.review import simulate_threshold
+
+        result = self.current_result()
+        if result is None:
+            raise ValueError("completed analysis required")
+        self.simulation = simulate_threshold(self.input_data, result.records, threshold)
+        self.prepared_export = None
+        self.export_context = None
+
+    def sync_export_context(self, context: tuple) -> None:
+        if context != self.export_context:
+            self.prepared_export = None
+            self.export_context = context
+
+    def prepare_export(self, *, format="JSON", scope="full_analysis", indices=None,
+                       order="sequence", include_simulation=False) -> None:
+        from cids.workbench.export import export_document, serialize_export
+
+        self.prepared_export = None
+        result = self.current_result()
+        if result is None:
+            raise ValueError("completed analysis required")
+        if include_simulation and self.simulation is None:
+            raise ValueError("active simulation required")
+        document = export_document(self.input_data, result, scope=scope, indices=indices,
+                                   order=order, simulation=self.simulation if include_simulation else None)
+        self.prepared_export = serialize_export(document, format)
 
     def invalidate(self, *, reset_uploader: bool = False) -> None:
+        self.clear_derivatives()
         self.input_data = None
         self.result = None
         self.error = None
@@ -164,6 +205,7 @@ class AnalysisSession:
 
     def analyze(self, *, before_scoring: Callable | None = None) -> None:
         """Each explicit action uses the verified loader again. Retain no model."""
+        self.clear_derivatives()
         self.result = None
         self.error = None
         self.revision += 1
@@ -196,6 +238,7 @@ class AnalysisSession:
                 and self.result.input_sha256 == self.input_data.input_sha256
                 and self.result.model_pack_id == self.binding[1]):
             return self.result
+        self.clear_derivatives()
         return None
 
 

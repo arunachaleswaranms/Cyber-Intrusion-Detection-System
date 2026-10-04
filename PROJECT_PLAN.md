@@ -57,8 +57,9 @@ or representative of modern traffic.
 | v2.1 dashboard | Phase 2 evidence mode merged to `main` by PR #1 at `9d72ad1`; see `docs/dashboard.md`. Streamlit server health check passed with the server bound to `127.0.0.1` |
 | Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
 | v2.1 model pack | Phase 3A registration and Phase 3B verified loading/inference implemented. The ignored local pack `e2d4f329…2b18` passed exact-buffer loading and bounded inference on 16 checksum-verified training-partition rows; no official-test data or metrics were accessed. Phase 3C adds an explicit opt-in bounded CSV analysis page; default evidence navigation does not load models |
-| Phase 3C handoff | Pushed on `cids-v2.1-phase3c-analysis-ui` and independently reviewed at `b60a703`; no blocking findings, 391 passed / 3 skipped, dependency check passed, and all four GitHub CI jobs passed; awaiting PR merge |
-| Next milestone | Phase 3D: label-backed review, threshold simulation and safe export; next after Phase 3C PR merge and not started |
+| Phase 3D handoff | Implemented on `cids-v2.1-phase3d-review-export`; awaiting independent review. Local matrix: base 325 passed / 59 skipped; reproduction 378 / 6; workbench 387 / 4; dashboard 464 / 0. Focused 188 / 0; four dependency checks passed |
+| Phase 3C handoff | Merged through PR #4 at `9d81a3c4136f7062aca3c238c0d041e722dd1330`; independent review had no blocking findings; all four post-merge CI jobs passed |
+| Next milestone | Phase 4 after Phase 3D independent review and merge; Phase 3D implemented, awaiting independent review |
 
 ## Phase 3C implementation and verification (2026-10-04)
 
@@ -99,7 +100,39 @@ All four GitHub CI jobs (`test`, `reproduction-environment`, `workbench-phase-1`
 `dashboard-phase-2`) passed on that commit. The independent reviewer could not
 repeat the original-model integration checks requiring ignored local artifacts;
 the implementer's original-pack verification above is separately reported.
-Phase 3C awaits PR merge. Phase 3D is next after merge and has not started.
+Phase 3C merged through PR #4 at `9d81a3c4136f7062aca3c238c0d041e722dd1330`.
+All four post-merge jobs passed in [CI run 37180576999](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37180576999).
+
+## Phase 3D implementation (2026-10-04)
+
+Branch: `cids-v2.1-phase3d-review-export`, based on current `origin/main`
+`9d81a3c4136f7062aca3c238c0d041e722dd1330`. Implemented and awaiting
+independent review; no PR, merge, tag or release. Phase 4 follows Phase 3D merge.
+
+- Framework-independent `review.py` uses uploaded `label` for TP/TN/FP/FN
+  and explicit-denominator sample metrics. Uploaded `attack_cat` independently
+  compares to `family_prediction_raw`, never binary-gated triage. No truth is
+  inferred. Missing-class/zero-denominator rates are unavailable with reasons.
+- Ephemeral, sample-specific threshold simulation uses existing scores on the
+  full current upload. The pinned estimator uses raw logit > 0 (normal on ties);
+  the score-domain baseline is 0.50 with strict `>` and normal on equality.
+  Stored-score rounding can differ from raw decisions near the boundary.
+  Original predictions, review categories and frozen 0.90 queue bands remain
+  unchanged. No official-test rows/evidence are used for threshold selection.
+- Explicit JSON-default/CSV export is prepared only in session memory. The
+  documented allowlist omits raw features, paths and artifacts; includes digest,
+  pack ID, provenance, scope, stable IDs and research notices. Filtered scope
+  covers all matching pages in deterministic review order. Undefined metrics
+  serialize as null. CSV prefixes formula initiators behind whitespace/control
+  characters while preserving numeric types and applying proper quoting.
+- Analysis lifecycle clears simulation and prepared downloads, including explicit
+  reanalysis, failed replacements, removal, clear, failures and pack changes.
+  Scope/format/filter/simulation changes invalidate affected prepared exports.
+  Built-in dataframe download/copy remains disabled; explanations remain
+  `not_requested`. Clearing references is not secure memory erasure.
+- No new dependency, retraining, calibration, frozen-file change, official-test
+  evaluation, SHAP implementation, demonstration, Docker or release work.
+  Verification and exact environment counts are in [dashboard.md](docs/dashboard.md).
 
 ## Release roadmap
 
@@ -155,7 +188,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–2 and 3A–3C implemented; Phase 3C independently reviewed and awaiting PR merge**
+Status: **Phases 1–2 and 3A–3D implemented; Phase 3D awaiting independent review, not merged or released**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -175,8 +208,8 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - Phase 3: trusted local inference, review, and safe export, in four steps:
   - [x] Phase 3A: trusted final-model-pack registration and preflight.
   - [x] Phase 3B: verified deserialization and framework-independent inference.
-  - [x] Phase 3C: bounded CSV analysis UI and review queue (pushed and independently reviewed at `b60a703`; awaiting PR merge).
-  - [ ] Phase 3D: label-backed review, threshold simulation, and safe export (next after Phase 3C PR merge; not started).
+  - [x] Phase 3C: bounded CSV analysis UI and review queue (merged by PR #4 at `9d81a3c`; post-merge CI passed).
+  - [x] Phase 3D: label-backed review, ephemeral threshold simulation, and safe export (implemented; awaiting independent review, not merged or released).
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
 - [ ] Phase 5: add Docker, non-root packaging, container health checks, and
       release checks (the pinned dashboard lock and Streamlit `AppTest` coverage
@@ -250,6 +283,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-10-01 | Leave post-deserialization validation to Phase 3B. | Phase 3A never deserializes, so it cannot validate object type, fitted state, or internal metadata; 3B must do so immediately after `joblib.load` on a preflighted pack. |
 | 2026-10-02 | Accept only gate-anchored final packs for Phase 3B loading; hash bounded bytes and deserialize that same buffer. | Preflight and post-load validation bind executable local artifacts to the frozen task, schema, model, metadata, class order, and runtime. The real pack passed a bounded inference check on verified training rows without official-test access. |
 | 2026-10-04 | Implement Phase 3C with one CLI pack-ID binding, explicit analysis and session-only bounded review. | Preserve evidence defaults, verified services, frozen queue policy and the Phase 3D boundary. |
+| 2026-10-04 | Implement Phase 3D with independent uploaded truth, strict score-domain simulation and explicit allowlisted session-memory export. | Preserve original predictions and frozen evidence; make sample scope, undefined rates, formula safeguards and lifecycle invalidation explicit. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -271,9 +305,9 @@ Before finishing:
 
 ## Next session
 
-1. Merge the Phase 3C PR after review and CI checks.
-   Phase 3D label-backed review, threshold simulation and safe export are the
-   next implementation milestone after merge and have not started.
+1. Independently review the pushed Phase 3D branch and its final-head CI.
+   Phase 3D is implemented, not merged or released. Phase 4 begins only after
+   Phase 3D merge. Phase 3C is already merged by PR #4 with post-merge CI passing.
 2. Optional maintainer check: open the dashboard locally and repeat the visual
    check in `docs/dashboard.md` in your own browser; degraded states were
    exercised only through `AppTest`.

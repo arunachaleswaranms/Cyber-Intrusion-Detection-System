@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 and 3A–3C implemented; Phase 3C independently reviewed, awaiting PR merge; Phase 3D next after merge, not started |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 and 3A–3D implemented; Phase 3C merged with post-merge CI passing; Phase 3D awaiting independent review |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -104,10 +104,10 @@ artifacts are accepted. The service scores binary and multiclass models
 independently in batches, preserves supplied IDs and UTC timestamps, and emits
 `PredictionRecord` objects with uncalibrated model scores, queue bands, and
 `explanation_status="not_requested"`. These scores are not calibrated
-probabilities or production risk. Phase 3D label-backed review, threshold
-simulation and export have not started.
+probabilities or production risk. Phase 3D adds uploaded-label review,
+ephemeral threshold simulation and explicit safe export; awaiting independent review.
 
-## Local CSV analysis (v2.1 Phase 3C)
+## Local CSV analysis, review and export (v2.1 Phases 3C–3D)
 
 From this repository root, use Python **3.12.14** and the pinned dashboard
 environment above. Register the original trusted pack with the Phase 3A CLI
@@ -140,9 +140,31 @@ Uploads and results live only in session memory. Replacement (including an
 invalid replacement), removal, pack changes, failure and **Clear analysis**
 invalidate earlier results; clear also resets the uploader. Input digests and
 pack IDs bind result provenance. Display reruns do not reload or score models.
-Clearing references is not secure memory erasure. Optional labels are validated
-only, and `explanation_status` remains `not_requested`. These offline research
-predictions are separate from the frozen benchmark. See
+Clearing references is not secure memory erasure. Uploaded `label` enables
+TP/TN/FP/FN, sample confusion matrix and explicit-denominator precision, recall,
+F1, FPR and FNR; undefined rates show Unavailable. Uploaded `attack_cat`
+independently enables raw-family misclassification review. Neither label column
+means prediction review only; ground truth is never inferred.
+
+With `label`, **ephemeral, sample-specific threshold simulation** compares
+stored attack scores using strict `>` (baseline 0.50, equality normal) on the
+full current uploaded sample, including filtered-out rows. Reset restores the
+baseline. This does not change original predictions or the frozen 0.90 queue
+policy, reload models, or score again. Scores remain uncalibrated. Uploaded
+feature rows cannot establish provenance: do not upload official-test rows or
+use benchmark evidence for threshold selection.
+
+Choose **Full analysis** or **Current filtered review** (all matching pages),
+choose JSON (default) or CSV, then **Prepare export** and use the dedicated
+download. Exports omit raw features, paths and artifact contents; include
+stable IDs, original/review outputs, digest, pack ID, provenance and scope.
+Optional simulation is explicitly separate. JSON is strict, with undefined
+metrics null; CSV neutralizes spreadsheet formulas behind whitespace/control
+characters and properly quotes cells. Filenames are fixed. Analysis lifecycle
+and export-context changes discard prepared downloads. Built-in dataframe
+export/copy stays disabled. `explanation_status` remains `not_requested`.
+Phase 3D is implemented and awaiting independent review; Phase 4 follows its
+merge. These offline research predictions are separate from frozen evidence. See
 [`docs/dashboard.md`](docs/dashboard.md) for lifecycle and queue semantics.
 
 ## Current v2.0 capabilities
