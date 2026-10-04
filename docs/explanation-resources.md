@@ -5,7 +5,13 @@ findings (588 passed / 4 skipped, dependency check passed); four post-merge jobs
 passed. Phase 5 container packaging merged through PR #7 at `665a3ef`; all five
 post-merge CI jobs passed. Independent review found no blocking issues; its
 original-model and browser checks used implementer evidence rather than repeating
-them. See [acceptance scope](release-readiness-v2.1.md). The release remains unpublished.
+them. See [acceptance scope](release-readiness-v2.1.md).
+
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
 
 The accepted ADR 0003 / Phase 1 gate remains unchanged. No historical gate or
 original official-test evaluation is rerun. Ordinary analysis, label-backed

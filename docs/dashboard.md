@@ -1,6 +1,13 @@
 # v2.1 evidence dashboard, local analysis and explainability (Phases 2–4)
 
-Status: **Phases 1–5 implemented and merged; independent Phase 5 review found no blocking issues; v2.1 publication pending**
+Status: **Phases 1–5 implemented, reviewed and merged; release closure merged;
+stable v2.1.0 published on 2026-10-04; paused for maintenance**
+
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
 
 The dashboard presents the frozen v2.0 benchmark and the accepted v2.1
 explanation gate. It reads committed, non-executable evidence, verifies it on
@@ -214,7 +221,7 @@ Phase 3C did not infer errors from predictions. Phase 3D now adds uploaded-label
 review, ephemeral simulation and explicit export below. Without uploaded truth,
 predictions are never called measured detections or true/false positives.
 The original exported analysis snapshot's `explanation_status` stays `not_requested`; Phase 4 task-specific local states are separate. Phase 3D merged via PR #5 at `5305f0a`; all four post-merge CI jobs passed;
-packaging/release remain Phase 5.
+Phase 5 packaging and release closure are complete.
 
 ## Uploaded-label review and ephemeral simulation
 
@@ -691,6 +698,6 @@ results, skips and platform limits. Phase 5 merged through PR #7 at
 606 passed / 8 skipped and dependency consistency passed, with no blocking
 code/documentation findings. Docker was unavailable to the reviewer: container
 checks used CI logs, and original-model/browser checks used implementer evidence.
-No formal GitHub approval was submitted. [Final notes](release-notes-v2.1.0.md)
-are ready for the separate [publication handoff](release-handoff-v2.1.0.md);
-the release remains unpublished.
+No formal GitHub approval was submitted. [Published notes](release-notes-v2.1.0.md)
+and the [completed publication record](release-handoff-v2.1.0.md) describe stable
+v2.1.0. The project is paused for maintenance; no next-version implementation is authorized.

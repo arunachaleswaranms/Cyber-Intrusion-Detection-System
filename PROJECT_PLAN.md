@@ -31,13 +31,16 @@ or representative of modern traffic.
 
 | Item | State |
 |---|---|
-| Active release | v2.1 release closure; Phases 1–5 implemented and merged |
-| Release status | v2.0 published as `v2.0.0`; v2.1.0 notes finalized, tag and GitHub Release publication pending |
+| Active release | v2.1.0 published; Phases 1–5 implemented, reviewed and merged; release closure merged |
+| Release status | Stable [v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) published on 2026-10-04; v2.0 remains published as `v2.0.0` |
+| v2.1.0 released commit | `ed2e38a9014ee52756276bb0707d0de09ea3df35` |
+| Release closure | [PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) merged at the released commit; all five post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388) |
+| Development status | Paused for maintenance; no next-version implementation authorized |
 | v1.1 implementation commit | `516ca7099ef3fa5f1629e1ad8829573c5300a403` |
 | v2.0 release commit | `39a6a6f5e24164573913dbed6fd3e382b93fb769` |
 | Baseline dataset | KDD Cup 1999 (historical baseline only) |
 | v1.1 baseline models | Random Forest and Gradient Boosting |
-| Automated tests | Phase 5 independent local verification: 606 passed / 8 skipped; dependency consistency passed; no blocking code/documentation findings. All five post-merge jobs passed at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b` in [run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). Exact scope: docs/release-readiness-v2.1.md |
+| Automated tests | Phase 5 independent local verification: 606 passed / 8 skipped; dependency consistency passed; no blocking code/documentation findings. All five closure post-merge jobs passed at `ed2e38a9014ee52756276bb0707d0de09ea3df35` in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388). Exact scope: docs/release-readiness-v2.1.md |
 | Phase 3B local verification | Base 247 passed, 34 skipped (30 pinned-runtime tests, 2 SHAP and 2 Streamlit); reproduction 277 passed, 4 skipped (2 SHAP and 2 Streamlit); workbench 286 passed, 2 skipped (Streamlit); dashboard 322 passed. The ignored real pack passed 16 checksum-verified training rows. Dashboard `pip check`, all four environment dependency checks, and `git diff --check` passed |
 | v2.0 primary dataset | UNSW-NB15 |
 | Dataset integrity | Official partitions pinned by SHA-256 manifest |
@@ -60,8 +63,8 @@ or representative of modern traffic.
 | Phase 3D handoff | Merged through PR #5 at `5305f0a317164c24e81631abbc2a870498e0ac7f`; all four post-merge CI jobs passed in run `37183225010`. Historical local verification: Local matrix: base 325 passed / 59 skipped; reproduction 378 / 6; workbench 387 / 4; dashboard 464 / 0. Focused 188 / 0; four dependency checks passed |
 | Phase 3C handoff | Merged through PR #4 at `9d81a3c4136f7062aca3c238c0d041e722dd1330`; independent review had no blocking findings; all four post-merge CI jobs passed |
 | Phase 4 handoff | Merged through PR #6 at `ce7f37e2a0a33894ea5c83de40bdf5d065b7f947`; independent review had no blocking findings. Original explanation/global integration and populated-view browser QA were outstanding at handoff |
-| Phase 5 handoff | Implemented and merged through [PR #7](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/7) at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`; independent review found no blocking issues; all five post-merge CI jobs passed. Implementation accepted within documented verification scope; no formal GitHub approval submitted; release unpublished |
-| Next milestone | Review and merge the v2.1.0 closure PR, then separately authorize annotated tag and GitHub Release publication using docs/release-handoff-v2.1.0.md; no v3.0 or image publication |
+| Phase 5 handoff | Implemented and merged through [PR #7](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/7) at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`; independent review found no blocking issues; all five post-merge CI jobs passed. Implementation accepted within documented verification scope; no formal GitHub approval submitted. Historical Phase 5 evidence; v2.1.0 is now published |
+| Next milestone | None authorized. Maintenance pause after v2.1.0; any possible v3.0 milestone requires fresh design and explicit approval. No image publication |
 
 ## Phase 3C implementation and verification (2026-10-04)
 
@@ -220,7 +223,8 @@ blocking findings. All four post-merge jobs passed in run `37191000174`.
   scoring/explaining/tuning, gate rerun, retraining or acceptance broadening.
 - [Acceptance evidence](docs/release-readiness-v2.1.md) maps all design criteria;
   [container operations](docs/container.md) has exact commands; release notes are
-  finalized/unpublished. Independent review and merge are recorded below.
+  finalized but unpublished at this historical implementation handoff. Subsequent
+  independent review, merge and publication are recorded below.
 
 Local full matrix: **base 453 passed / 73 skipped; reproduction 508 / 18;
 workbench 520 / 13; dashboard 614 / 0**. Native Linux arm64 container workbench/
@@ -248,12 +252,18 @@ checks. Original-model and browser checks were reviewed from implementer evidenc
 not independently repeated. No formal GitHub approval was submitted.
 
 Phase 5 merged through PR #7 at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`. All five
-post-merge jobs passed in [run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). Closure started
-from this current `origin/main`; no intervening main changes existed. No `v2.1.0`
-tag or GitHub Release existed at the closure check. Implementation acceptance
-within [documented scope](docs/release-readiness-v2.1.md) is complete; release
-publication remains pending. [Final notes](docs/release-notes-v2.1.0.md) and
-[maintainer handoff](docs/release-handoff-v2.1.0.md) prepare that separate action.
+post-merge jobs passed in [run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). Historically, closure started
+from that Phase 5 `origin/main` commit with no intervening changes; no `v2.1.0`
+tag or GitHub Release existed at that pre-publication check. Implementation
+acceptance within [documented scope](docs/release-readiness-v2.1.md) is complete.
+
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
+[Published release notes](docs/release-notes-v2.1.0.md) and the
+[completed publication record](docs/release-handoff-v2.1.0.md) describe the release.
 Frozen evidence, model/runtime acceptance and dependency locks are preserved.
 
 ## Release roadmap
@@ -310,7 +320,8 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–5 implemented and merged; independent Phase 5 review found no blocking issues; v2.1.0 publication pending**
+Status: **Phases 1–5 implemented, reviewed and merged; release closure merged;
+stable v2.1.0 published on 2026-10-04; project paused for maintenance**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -336,15 +347,16 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - [x] Phase 5: non-root Docker packaging, health checks, local read-only workflow,
       container verification and release acceptance documentation (PR #7 merged).
 - [x] Complete implementation acceptance and independent review within documented scope.
-- [ ] Review and merge release closure documentation.
-- [ ] Separately authorize and publish the annotated v2.1.0 tag and GitHub Release.
+- [x] Review and merge release closure documentation (PR #8).
+- [x] Publish the annotated v2.1.0 tag and stable GitHub Release (2026-10-04).
 
 Exit criteria: a reviewer can run the dashboard locally, analyze safe sample
 data, inspect features that influenced each model output, and review measured false positives.
 
 ### v3.0 — PCAP-to-alert research workflow
 
-Status: **Future; requires design review**
+Status: **Possible future milestone; requires fresh design and explicit approval.
+No next-version implementation is authorized during the maintenance pause.**
 
 - [ ] Evaluate a maintained flow extractor and document its trust boundary.
 - [ ] Implement PCAP to flow features to schema validation to model inference.
@@ -408,6 +420,7 @@ alerts reproducibly, with documented safety controls and known limitations.
 | 2026-10-02 | Accept only gate-anchored final packs for Phase 3B loading; hash bounded bytes and deserialize that same buffer. | Preflight and post-load validation bind executable local artifacts to the frozen task, schema, model, metadata, class order, and runtime. The real pack passed a bounded inference check on verified training rows without official-test access. |
 | 2026-10-04 | Implement Phase 3C with one CLI pack-ID binding, explicit analysis and session-only bounded review. | Preserve evidence defaults, verified services, frozen queue policy and the Phase 3D boundary. |
 | 2026-10-04 | Implement Phase 3D with independent uploaded truth, strict score-domain simulation and explicit allowlisted session-memory export. | Preserve original predictions and frozen evidence; make sample scope, undefined rates, formula safeguards and lifecycle invalidation explicit. |
+| 2026-10-04 | Record stable v2.1.0 publication at `ed2e38a9014ee52756276bb0707d0de09ea3df35` after closure PR #8 and successful five-job post-merge CI; pause development for maintenance. | Release closure is complete. No next-version implementation is authorized; possible v3.0 work requires fresh design and explicit approval. |
 
 ## Handoff checklist for any AI or contributor
 
@@ -415,7 +428,8 @@ Before making changes:
 
 1. Read `README.md` and this entire file.
 2. Run `git status --short --branch` and preserve unrelated changes.
-3. Confirm the active milestone and choose only unchecked tasks within it.
+3. Confirm the project state. During the maintenance pause, perform only
+   explicitly authorized maintenance; roadmap checkboxes do not authorize work.
 4. Run the existing test suite before editing.
 5. Do not silently change datasets, labels, metrics, or release scope.
 
@@ -429,11 +443,12 @@ Before finishing:
 
 ## Next session
 
-1. Review and merge the v2.1.0 release closure PR after its final-head and PR CI pass.
-2. Separately authorize tag/Release publication and follow
-   `docs/release-handoff-v2.1.0.md`, resolving the actual merged main commit.
-   The release remains unpublished; do not publish an image or start v3.0.
-3. Optional evidence, not a Phase 3 blocker: the Apple Silicon reproduction
+1. The project is paused after published v2.1.0. No next-version implementation
+   is authorized; wait for an explicit maintenance request or fresh design and
+   approval before a possible future milestone.
+2. Publication is complete. `docs/release-handoff-v2.1.0.md` preserves the historical
+   guarded procedure for reference; do not rerun it for v2.1.0.
+3. Historical deferred evidence, not an authorized next action: the Apple Silicon reproduction
    selection record. Commit it only if the exact original file exists and its
    canonical digest equals the `reproduction_selection_sha256` already recorded
    by the official run (`90439d17…`). Never reconstruct or regenerate it. On

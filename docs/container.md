@@ -174,8 +174,15 @@ Original-model and browser checks used implementer evidence rather than independ
 repetition. Other architectures, broader browser coverage and original-artifact
 integration on amd64 remain unqualified. No formal GitHub approval was submitted.
 
-[Final release notes](release-notes-v2.1.0.md) replace the draft; the existing
-build-context allowlist entry follows that filename rename. Publication instructions
-in [the maintainer handoff](release-handoff-v2.1.0.md) are repository-only and
-excluded from the runtime context. Tag/Release publication remains pending;
-no container image is published.
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
+
+[Published release notes](release-notes-v2.1.0.md) use the existing build-context
+allowlist entry; no filenames or allowlist entries changed during publication
+cleanup. The completed historical procedure in
+[the publication record](release-handoff-v2.1.0.md) is repository-only and
+excluded from the runtime context. Do not rerun it for v2.1.0.
+No container image is published.

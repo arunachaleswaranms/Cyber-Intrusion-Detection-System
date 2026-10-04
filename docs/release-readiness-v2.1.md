@@ -1,15 +1,22 @@
 # v2.1 release acceptance evidence
 
-**Phases 1–5 implemented and merged; implementation acceptance complete within
-the documented verification scope; v2.1.0 publication pending.**
+**Phases 1–5 implemented, reviewed and merged; implementation acceptance complete
+within the documented verification scope; stable v2.1.0 published on 2026-10-04.**
+
+[v2.1.0](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.1.0) was published as a stable GitHub Release on
+2026-10-04 at `ed2e38a9014ee52756276bb0707d0de09ea3df35`. Release closure
+[PR #8](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/8) is merged; all five closure
+post-merge jobs passed in [run 37207887388](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37207887388).
+The project is paused for maintenance; no next-version implementation is authorized.
 
 Independent Phase 5 code/documentation review found **no blocking issues**.
 Phase 5 merged through [PR #7](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/pull/7)
 at `665a3efeb77e10ab5d55adcb8d8d7e6b499d951b`. All five post-merge jobs passed in
 [run 37198188962](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37198188962). No formal GitHub approval was submitted.
-[Final release notes](release-notes-v2.1.0.md) and [maintainer handoff](release-handoff-v2.1.0.md)
-prepare separate tag/Release publication; no v2.1.0 tag or Release existed when
-closure started from this current main commit on 2026-10-04.
+[Published release notes](release-notes-v2.1.0.md) and the
+[completed publication record](release-handoff-v2.1.0.md) describe the release.
+Historically, no v2.1.0 tag or Release existed when closure started from the
+Phase 5 main commit on 2026-10-04; publication subsequently completed as recorded above.
 
 Phase 4 merged through PR #6 at `ce7f37e2a0a33894ea5c83de40bdf5d065b7f947`.
 Independent review: **588 passed / 4 skipped**, dependency check passed, no blocking
@@ -38,7 +45,7 @@ to evidence. Existing tests are reused without weakening production pack anchors
 | Provenance and formula-safe JSON/CSV | `test_workbench_export.py`, `test_dashboard_review_export.py` | Verified locally |
 | Safe non-realistic synthetic sample | `test_synthetic_sample.py`, `test_dashboard_phase4.py` | Verified locally |
 | Unit/integration/Streamlit/Docker pass | Four unchanged CI jobs plus `container-packaging`; `scripts/verify_container.py` | Verified on Mac, native arm64 Docker and amd64 CI |
-| Exact setup and honest current state | README, `container.md`, dashboard/resource docs, PROJECT_PLAN; independent code/documentation review | No blocking findings; closure PR review pending |
+| Exact setup and honest current state | README, `container.md`, dashboard/resource docs, PROJECT_PLAN; independent code/documentation review | No blocking findings; closure PR #8 merged; v2.1.0 published |
 
 ## Independent Phase 5 review scope (2026-10-04)
 
@@ -140,10 +147,9 @@ the maintainer's Mac and native arm64 Docker, not claimed on amd64.
 
 Independent Phase 5 review is complete with no blocking issues, and all five
 post-merge CI jobs passed. No known failing technical acceptance check remains
-within the tested scope. Remaining release steps: review/merge the closure PR,
-verify its merged main commit and CI, then separately authorize annotated tag and
-GitHub Release publication. The release remains unpublished; no container image
-publication is part of this handoff. Other manifest architectures are unqualified;
+within the tested scope. Release closure PR #8 is merged, its five-job post-merge
+CI passed, and the annotated tag and stable GitHub Release are published as
+recorded above. No container image was published. Other manifest architectures are unqualified;
 broader theme/responsive/browser coverage and original-artifact integration on
 amd64 remain unqualified. These limits stay visible in the final notes.
 
