@@ -60,7 +60,7 @@ or representative of modern traffic.
 | Phase 3D handoff | Merged through PR #5 at `5305f0a317164c24e81631abbc2a870498e0ac7f`; all four post-merge CI jobs passed in run `37183225010`. Historical local verification: Local matrix: base 325 passed / 59 skipped; reproduction 378 / 6; workbench 387 / 4; dashboard 464 / 0. Focused 188 / 0; four dependency checks passed |
 | Phase 3C handoff | Merged through PR #4 at `9d81a3c4136f7062aca3c238c0d041e722dd1330`; independent review had no blocking findings; all four post-merge CI jobs passed |
 | Phase 4 handoff | Merged through PR #6 at `ce7f37e2a0a33894ea5c83de40bdf5d065b7f947`; independent review had no blocking findings. Original explanation/global integration and populated-view browser QA were outstanding at handoff |
-| Phase 5 handoff | Packaging implemented on `cids-v2.1-phase5-packaging-release`; local verification passed; Linux CI/browser failure checks pending; awaiting independent review, not release ready/published |
+| Phase 5 handoff | Packaging implemented on `cids-v2.1-phase5-packaging-release`; local and five-job Linux CI verification passed; awaiting independent review/signoff, not release ready/published |
 | Next milestone | Phase 5 independent review and completed acceptance evidence; no release/tag/image publication authorized |
 
 ## Phase 3C implementation and verification (2026-10-04)
@@ -220,7 +220,7 @@ blocking findings. All four post-merge jobs passed in run `37191000174`.
   scoring/explaining/tuning, gate rerun, retraining or acceptance broadening.
 - [Acceptance evidence](docs/release-readiness-v2.1.md) maps all design criteria;
   [container operations](docs/container.md) has exact commands; release notes are
-  draft/unpublished. Independent review and remaining acceptance gates stay open.
+  draft/unpublished. Independent Phase 5 review and acceptance signoff stay open.
 
 Local full matrix: **base 453 passed / 73 skipped; reproduction 508 / 18;
 workbench 520 / 13; dashboard 614 / 0**. Native Linux arm64 container workbench/
@@ -228,7 +228,12 @@ dashboard suite: **537 / 5**; separate original synthetic explanation integratio
 **1 / 0**; profile/permission focus **22 / 0**. Four host dependency checks, image
 checks, context audit, healthy loopback publication, read-only operation, graceful
 shutdown and diff checks passed. Exact skip/platform/browser scope and remaining
-Linux CI/review gates are in the acceptance document. Frozen results/configs/gate
+review gate is in the acceptance document. All five implementation-head jobs
+passed in [run 37193157065](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37193157065);
+native Linux amd64 container qualification passed 537 / 5. Browser inspected
+populated original explanation/global/export views, container analysis/explanations,
+the missing-resource view and a test-only deadline-failure state with export still
+usable. Final documentation-head CI is tracked in the review PR. Frozen results/configs/gate
 hashes and all existing model/runtime acceptance rules remain unchanged.
 
 ## Release roadmap

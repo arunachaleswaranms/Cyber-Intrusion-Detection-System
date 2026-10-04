@@ -1,7 +1,7 @@
 # v2.1 release acceptance evidence
 
-Phase 5 implemented; local verification passed, Linux final-head CI and
-independent review are pending.
+Phase 5 implemented; local and Linux CI verification passed. Independent
+review/signoff is pending.
 **Not release ready or published.** A build is not release acceptance.
 
 Phase 4 merged through PR #6 at `ce7f37e2a0a33894ea5c83de40bdf5d065b7f947`.
@@ -30,7 +30,7 @@ to evidence. Existing tests are reused without weakening production pack anchors
 | Gated explanations/source mapping | Frozen accepted gate; `test_workbench_explanations.py`, `test_phase4_explanations.py`; original-pack integration separately below | Verified locally |
 | Provenance and formula-safe JSON/CSV | `test_workbench_export.py`, `test_dashboard_review_export.py` | Verified locally |
 | Safe non-realistic synthetic sample | `test_synthetic_sample.py`, `test_dashboard_phase4.py` | Verified locally |
-| Unit/integration/Streamlit/Docker pass | Four unchanged CI jobs plus `container-packaging`; `scripts/verify_container.py` | Local suites/native arm64 passed; Linux CI pending |
+| Unit/integration/Streamlit/Docker pass | Four unchanged CI jobs plus `container-packaging`; `scripts/verify_container.py` | Verified on Mac, native arm64 Docker and amd64 CI |
 | Exact setup and honest current state | README, `container.md`, dashboard/resource docs, PROJECT_PLAN; independent review | Awaiting review |
 
 ## Verification record
@@ -45,6 +45,11 @@ Verified on 2026-10-04:
 | macOS arm64, dashboard lock | 614 | 0 | Full suite including original-pack synthetic explanations |
 | Linux arm64, Docker Desktop native on Apple Silicon | 537 | 5 | Restricted workbench/dashboard suite with synthetic/test-only anchors |
 | Linux arm64, original trusted pack/resources | 1 | 0 | Both actual isolated explanation tasks on committed synthetic foreground |
+| Linux amd64 CI, Python 3.11 base | 452 | 74 | Full CI suite |
+| Linux amd64 CI, reproduction environment | 506 | 20 | Full CI suite |
+| Linux amd64 CI, workbench environment | 517 | 16 | Full CI suite |
+| Linux amd64 CI, dashboard environment | 610 | 4 | Full CI suite; private original integrations absent |
+| Linux amd64 CI, restricted container | 537 | 5 | Same context/runtime/read-only/health/stop/representative checks |
 | macOS focused container profile/permissions | 22 | 0 | Narrow profile, launcher/probe and real permission failures |
 
 All four host dependency checks, image dependency consistency/exact-lock probes,
@@ -96,12 +101,25 @@ JSON export view. Analysis and both explanation tasks also succeeded through the
 restricted arm64 container UI. The browser connector file-upload permission was
 disabled; the native macOS picker attached only the committed synthetic CSV,
 without changing extension permissions. Broader theme/responsive/browser coverage
-is not claimed. Failure/missing-resource visual checks are being finalized.
+is not claimed. The real container missing-resource global view refused to load
+and showed a fixed safe message. A temporary **test-only** loopback harness used
+the existing sleeping synthetic worker with a 0.25-second deadline to inspect
+the failed selected-explanation state. Analysis stayed visible and JSON export
+remained preparable/downloadable. This harness was not packaged/committed, and
+production's 60-second policy and trust anchors were unchanged. Worker termination/
+reaping/IPC bounds are independently verified by the restricted-container suite.
 
-Remaining release gates: Linux amd64/final-head CI, completion of failure-state
-browser inspection and independent Phase 5 review/signoff. Other manifest
-architectures are unqualified. v2.1 is not release ready or published.
+All five jobs passed for implementation `45a6d7a6457497e893526f73136bdcf931e4466a`
+in [Linux CI run 37193157065](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/actions/runs/37193157065),
+including actual native `linux/amd64` image build/runtime qualification. The final
+documentation head and its CI links are recorded in the review PR. Linux CI has
+no private original model/resources; their actual integration was performed on
+the maintainer's Mac and native arm64 Docker, not claimed on amd64.
 
+Remaining release gate: **independent Phase 5 review and acceptance signoff**.
+No known failing technical acceptance check remains. Other manifest architectures
+are unqualified; broader theme/responsive/browser testing and original-artifact
+integration on amd64 are not claimed. v2.1 is not release ready or published.
 
 ## Known product limitations
 
