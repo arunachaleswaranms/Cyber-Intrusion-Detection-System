@@ -57,8 +57,8 @@ or representative of modern traffic.
 | v2.1 dashboard | Phase 2 evidence mode merged to `main` by PR #1 at `9d72ad1`; see `docs/dashboard.md`. Streamlit server health check passed with the server bound to `127.0.0.1` |
 | Dashboard environment | Python 3.12.14 with `requirements-dashboard.txt` (Streamlit 1.64.0 over the workbench lock) |
 | v2.1 model pack | Phase 3A registration and Phase 3B verified loading/inference implemented. The ignored local pack `e2d4f329…2b18` passed exact-buffer loading and bounded inference on 16 checksum-verified training-partition rows; no official-test data or metrics were accessed. Phase 3C adds an explicit opt-in bounded CSV analysis page; default evidence navigation does not load models |
-| Phase 3C handoff | Implemented on `cids-v2.1-phase3c-analysis-ui`; commit only, no push/PR/merge/tag/release; independent review pending |
-| Next milestone | Phase 3D: label-backed review, threshold simulation and safe export; not started |
+| Phase 3C handoff | Pushed on `cids-v2.1-phase3c-analysis-ui` and independently reviewed at `b60a703`; no blocking findings, 391 passed / 3 skipped, dependency check passed, and all four GitHub CI jobs passed; awaiting PR merge |
+| Next milestone | Phase 3D: label-backed review, threshold simulation and safe export; next after Phase 3C PR merge and not started |
 
 ## Phase 3C implementation and verification (2026-10-04)
 
@@ -83,15 +83,23 @@ or representative of modern traffic.
   3D/4/5 feature, frozen evidence, experiment, model selection or official-test
   record was changed or used for new scoring.
 
-Local verification: **base 272 passed / 58 skipped; reproduction 325 / 5;
+Implementer-reported local verification: **base 272 passed / 58 skipped; reproduction 325 / 5;
 workbench 334 / 3; dashboard 394 / 0**. Focused tests: 118 passed / 0 skipped.
 All four existing environments used Python 3.12.14 and passed pip check.
 Exact skip reasons are in [dashboard verification](docs/dashboard.md). The
 original registered pack passed direct/UI record equality on exactly 16 rows
 from the size/SHA-256-verified training copy in `/private/tmp`; no official-test
 raw data was accessed. Loopback server health passed. AppTest covered analysis
-interactions; new-page browser visual QA remains unperformed. Independent
-review and post-push CI remain pending.
+interactions; new-page browser visual QA remains unperformed.
+
+Phase 3C was pushed and independently reviewed at
+`b60a703b52a24ebef3e3903b51408d1151968baa`: **no blocking findings**;
+independent tests **391 passed / 3 skipped**, and the dependency check passed.
+All four GitHub CI jobs (`test`, `reproduction-environment`, `workbench-phase-1`,
+`dashboard-phase-2`) passed on that commit. The independent reviewer could not
+repeat the original-model integration checks requiring ignored local artifacts;
+the implementer's original-pack verification above is separately reported.
+Phase 3C awaits PR merge. Phase 3D is next after merge and has not started.
 
 ## Release roadmap
 
@@ -147,7 +155,7 @@ reported experiment, and obtain comparable metrics without modifying source code
 
 ### v2.1 — Analyst dashboard and explainability
 
-Status: **Phases 1–2 and 3A–3C implemented; Phase 3C awaiting independent review**
+Status: **Phases 1–2 and 3A–3C implemented; Phase 3C independently reviewed and awaiting PR merge**
 
 The approved architecture, user journeys, contracts, security controls, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
@@ -167,8 +175,8 @@ and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md) and
 - Phase 3: trusted local inference, review, and safe export, in four steps:
   - [x] Phase 3A: trusted final-model-pack registration and preflight.
   - [x] Phase 3B: verified deserialization and framework-independent inference.
-  - [x] Phase 3C: bounded CSV analysis UI and review queue (implemented and locally verified; independent review pending).
-  - [ ] Phase 3D: label-backed review, threshold simulation, and safe export.
+  - [x] Phase 3C: bounded CSV analysis UI and review queue (pushed and independently reviewed at `b60a703`; awaiting PR merge).
+  - [ ] Phase 3D: label-backed review, threshold simulation, and safe export (next after Phase 3C PR merge; not started).
 - [ ] Phase 4: implement the approved explanation path and synthetic sample.
 - [ ] Phase 5: add Docker, non-root packaging, container health checks, and
       release checks (the pinned dashboard lock and Streamlit `AppTest` coverage
@@ -263,9 +271,9 @@ Before finishing:
 
 ## Next session
 
-1. Independently review the Phase 3C branch after the maintainer pushes it.
+1. Merge the Phase 3C PR after review and CI checks.
    Phase 3D label-backed review, threshold simulation and safe export are the
-   next implementation milestone and have not started.
+   next implementation milestone after merge and have not started.
 2. Optional maintainer check: open the dashboard locally and repeat the visual
    check in `docs/dashboard.md` in your own browser; degraded states were
    exercised only through `AppTest`.

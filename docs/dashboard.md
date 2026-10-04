@@ -211,7 +211,8 @@ repository must pass `--client.disableDataExport true`.
 No uploaded prediction is called a true/false positive or measured detection.
 There are no label-backed errors, threshold controls, exports or attribution
 controls; `explanation_status` stays `not_requested`. Phase 3D is the next
-milestone. Explanations remain Phase 4; packaging/release remain Phase 5.
+milestone after Phase 3C PR merge and has not started. Explanations remain
+Phase 4; packaging/release remain Phase 5.
 
 ## Degraded states
 
@@ -278,7 +279,8 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 
 ## Validation performed for Phase 3C (2026-10-04)
 
-All four existing local environments used Python **3.12.14**. Full suites ran
+Implementer-reported local verification follows. All four existing local
+environments used Python **3.12.14**. Full suites ran
 with `CIDS_PHASE3B_TRAINING_CSV=/private/tmp/cids-phase3b-training.csv` so the
 optional original-pack gate actually executed in each pinned model environment.
 
@@ -301,8 +303,8 @@ warning, falling back to logical cores; this was not a failure or skip.
 
 Focused contract/session/UI/inference verification: **118 passed, no skips**.
 All four environments passed `python -m pip check`; `git diff --check` passed.
-The four existing CI jobs and dependency locks were preserved. These are local
-results; post-push CI and independent review are pending.
+The four existing CI jobs and dependency locks were preserved. These are the
+implementer's local results, separate from the independent review below.
 
 The registered original pack `e2d4f329b894a1b68b70af377ffc94441e02d024de27e7c351384d3e25692b18`
 passed both direct inference and the Streamlit AppTest analysis page on exactly
@@ -317,7 +319,17 @@ A temporary configured-pack server passed `/_stcore/health` (`ok`) and `lsof`
 confirmed `127.0.0.1:8503` only. Analysis interactions were verified through
 AppTest; real-browser visual inspection of the new page was not performed
 (the browser surface was unavailable). Clear removes references rather than
-securely erasing memory. No independent review approval is claimed.
+securely erasing memory.
+
+Phase 3C was pushed and independently reviewed at
+`b60a703b52a24ebef3e3903b51408d1151968baa`, with **no blocking findings**.
+Independent tests: **391 passed / 3 skipped**; dependency check passed.
+All four GitHub CI jobs (`test`, `reproduction-environment`, `workbench-phase-1`,
+`dashboard-phase-2`) passed on that commit. The independent reviewer could not
+repeat original-model integration checks requiring ignored local artifacts;
+the original-pack checks above remain separately reported by the implementer.
+New-page browser visual QA remains unperformed. Phase 3C awaits PR merge;
+Phase 3D is next after merge and has not started.
 
 ## Validation performed for Phase 2
 
