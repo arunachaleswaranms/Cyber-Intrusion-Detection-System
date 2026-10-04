@@ -17,7 +17,7 @@ Development status, decisions, and the staged roadmap are maintained in
 | v1.0 | KDD Cup 1999 | Original college project | Preserved as tag `v1.0.0` |
 | v1.1 | KDD Cup 1999 | Repaired, reproducible historical baseline | Published as tag `v1.1.0` |
 | v2.0 | UNSW-NB15 | Leakage-resistant binary and attack-family baselines | Published as tag [`v2.0.0`](https://github.com/arunachaleswaranms/Cyber-Intrusion-Detection-System/releases/tag/v2.0.0) |
-| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2, 3A, and 3B complete; Phase 3C next |
+| v2.1 | UNSW-NB15 | Evidence-first local analyst workbench | Phases 1–2 and 3A–3C implemented; Phase 3C independently reviewed, awaiting PR merge; Phase 3D next after merge, not started |
 
 The approved v2.1 boundary, user journeys, safety controls, contracts, phases,
 and acceptance criteria are in [`docs/v2.1-design.md`](docs/v2.1-design.md).
@@ -30,7 +30,8 @@ both original local artifacts and accepted. The preserved gate evidence is in
 [`docs/shap-compatibility-gate.md`](docs/shap-compatibility-gate.md) for limits.
 Phase 2 adds the evidence-first Streamlit dashboard described below. Phase 3A
 adds command-line registration of the trusted local v2.0 model pack. Phase 3B
-adds verified deserialization and framework-independent inference.
+adds verified deserialization and framework-independent inference. Phase 3C
+adds a separate opt-in CSV analysis page and bounded research review queue.
 
 ## Evidence dashboard (v2.1 Phase 2)
 
@@ -38,7 +39,8 @@ A local Streamlit dashboard presents the frozen v2.0 results from a clean clone:
 no dataset, no model artifact, and no network access are needed. Every number
 is read from committed, SHA-256-verified evidence and tagged with its evaluation
 stage (official test, validation, or explanation gate) and exact JSON source.
-It never loads a model or recomputes a result.
+Evidence pages never load a model or recompute a result. Evidence mode remains
+the startup default, including when a local pack is configured.
 
 ```bash
 python3.12 -m venv .venv-dashboard
@@ -80,8 +82,8 @@ for the trust boundary, checks, manifest, preflight, and manual removal.
 ## Verified local inference (v2.1 Phase 3B)
 
 Use the pinned Python 3.12.14 workbench environment. A caller supplies a local,
-CLI-registered pack directory and bytes from a bounded feature CSV; no model
-upload or dashboard inference UI exists yet.
+CLI-registered pack directory and bytes from a bounded feature CSV. The
+Phase 3C browser page can use only one pack bound outside the UI.
 
 ```python
 from pathlib import Path
@@ -102,8 +104,46 @@ artifacts are accepted. The service scores binary and multiclass models
 independently in batches, preserves supplied IDs and UTC timestamps, and emits
 `PredictionRecord` objects with uncalibrated model scores, queue bands, and
 `explanation_status="not_requested"`. These scores are not calibrated
-probabilities or production risk. Phase 3C will add the bounded CSV/dashboard
-integration; Phase 3D review and export have not started.
+probabilities or production risk. Phase 3D label-backed review, threshold
+simulation and export have not started.
+
+## Local CSV analysis (v2.1 Phase 3C)
+
+From this repository root, use Python **3.12.14** and the pinned dashboard
+environment above. Register the original trusted pack with the Phase 3A CLI
+first, then bind its single lowercase 64-character ID outside the browser:
+
+```bash
+PYTHONPATH=src python -m cids.experiments.preflight_model_pack \
+  --pack-dir artifacts/v2.1/model-packs/<model_pack_id>
+CIDS_MODEL_PACK_ID=<model_pack_id> streamlit run dashboard/app.py \
+  --server.address 127.0.0.1 --browser.gatherUsageStats false \
+  --client.disableDataExport true
+```
+
+The ID resolves only under `artifacts/v2.1/model-packs/`; arbitrary paths,
+URLs, model selection, model uploads and trust controls are absent from the
+browser. Configuration and page preflight do not deserialize models. Navigate
+to **Local CSV analysis**, upload one uncompressed UTF-8 CSV, then explicitly
+choose **Analyze CSV**. Each analysis uses the hardened verified loader anew.
+
+The input limit is **10 MiB / 50,000 data rows**, with exactly the 42
+`FEATURE_COLUMNS` plus optional `id`, `event_time`, `label`, `attack_cat`.
+Out-of-vocabulary values are counted for each model before scoring; the fitted
+encoder retains `handle_unknown="ignore"`. Results show independent binary and
+raw family predictions, model scores (uncalibrated), queue bands, provenance,
+filters, counts and one record's bounded feature detail. Review tables hold at
+most 200 records per page. Timestamp views require supplied offset-aware
+`event_time`, normalized to UTC; otherwise the view is **Record sequence**.
+
+Uploads and results live only in session memory. Replacement (including an
+invalid replacement), removal, pack changes, failure and **Clear analysis**
+invalidate earlier results; clear also resets the uploader. Input digests and
+pack IDs bind result provenance. Display reruns do not reload or score models.
+Clearing references is not secure memory erasure. Optional labels are validated
+only, and `explanation_status` remains `not_requested`. These offline research
+predictions are separate from the frozen benchmark. See
+[`docs/dashboard.md`](docs/dashboard.md) for lifecycle and queue semantics.
 
 ## Current v2.0 capabilities
 

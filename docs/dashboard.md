@@ -1,19 +1,20 @@
-# v2.1 evidence dashboard (Phase 2)
+# v2.1 evidence dashboard and local analysis (Phases 2 and 3C)
 
-Status: **Implemented; evidence mode only**
+Status: **Evidence mode remains the default; opt-in Phase 3C analysis implemented**
 
 The dashboard presents the frozen v2.0 benchmark and the accepted v2.1
 explanation gate. It reads committed, non-executable evidence, verifies it on
-every page view, and shows where each number came from. It does not load a
-model, read the UNSW-NB15 CSV files, make predictions, or recompute any
-official result.
+every page view, and shows where each number came from. Evidence pages do not load a
+model, read raw UNSW-NB15 CSV files, make predictions, or recompute any
+official result. A separate local analysis page accepts bounded feature CSVs
+and calls the existing Phase 3B services only after an explicit action.
 
 > Offline research artifact, not a production IDS. There is no authentication;
 > the server listens on `127.0.0.1` only.
 
 ## Launch
 
-Requires Python 3.12 (the pinned environments use 3.12.14). From the repository
+Requires Python **3.12.14** for analysis; evidence mode needs Python 3.12. From the repository
 root:
 
 ```bash
@@ -27,12 +28,13 @@ streamlit run dashboard/app.py
 Open the URL Streamlit prints (default `http://127.0.0.1:8501`). Start it from
 the repository root so `.streamlit/config.toml` applies: that file disables
 usage telemetry, binds to loopback, runs headless, and disables Streamlit
-"magic" rendering. No dataset, model artifact, or network access is needed.
+"magic" rendering. No dataset, model artifact, or network access is needed for evidence mode.
 
 Streamlit only reads that file from the current directory. The app therefore
 re-checks the policy at startup and **refuses to render** if the server is not
 bound to loopback or telemetry is enabled. To launch from elsewhere, pass
-`--server.address 127.0.0.1 --browser.gatherUsageStats false`.
+`--server.address 127.0.0.1 --browser.gatherUsageStats false` and
+`--client.disableDataExport true`.
 
 `requirements-dashboard.txt` layers Streamlit 1.64.0 and its complete dependency
 closure on top of `requirements-workbench.txt` without changing any workbench
@@ -95,6 +97,122 @@ be unsealed.
 | Attack families | Headline metrics, flagged weaknesses (presentation rule shown on the page), precision/recall per class, 10×10 confusion matrix, largest misclassifications, binary detection versus family attribution |
 | Explainability | What SHAP values mean and do not mean, gate result and bounds, and an explicit statement that attributions are not available in evidence mode |
 | Evidence & provenance | Component health, pinned files, recorded digests, dataset identity, run timestamps, model identity, data lineage, consistency checks, verification commands |
+| Local CSV analysis | Separate opt-in upload, explicit analysis, independent outputs, bounded queue filters/counts/order and single-record detail |
+
+## Configure one registered pack outside the browser
+
+Use the Phase 3A [registration CLI](model-pack-registration.md) to create a
+trusted `maintainer_final_v2` pack. The only startup binding is the environment
+variable `CIDS_MODEL_PACK_ID`, containing one lowercase 64-hex pack ID. It maps
+to the fixed app-controlled directory `artifacts/v2.1/model-packs/<ID>` under
+this checkout. Symlinked binding paths are refused. The browser has no pack
+selector, model uploader, arbitrary artifact path/URL, or trust acknowledgement
+control. Changing the binding requires changing the launch environment and
+restarting the process.
+
+```bash
+# From the repository root, in the pinned Python 3.12.14 dashboard environment:
+PYTHONPATH=src python -m cids.experiments.preflight_model_pack \
+  --pack-dir artifacts/v2.1/model-packs/<model_pack_id>
+CIDS_MODEL_PACK_ID=<model_pack_id> streamlit run dashboard/app.py \
+  --server.address 127.0.0.1 --browser.gatherUsageStats false \
+  --client.disableDataExport true
+```
+
+Without the variable, evidence mode starts normally and the analysis page says
+analysis is unavailable. Invalid packs and runtime mismatches also disable that
+page while evidence remains usable. Binding a pack does not authorize startup
+loading. The analysis page preflights without deserialization; **Analyze CSV**
+is the only scoring action and calls `load_model_pack()` followed by `infer()`.
+Every explicit action reloads through verified checks. Completed results may be
+reused on display reruns; models are not retained or cached.
+
+## Input, privacy and session lifecycle
+
+One uncompressed UTF-8 CSV is accepted, independently of the extension filter:
+maximum **10,485,760 bytes (10 MiB)** and **50,000 data rows**. The upload's
+reported byte size is checked before reading; the actual read is bounded to the
+limit plus one byte. Parsing uses the versioned workbench policy and
+`parse_inference_csv()`, with strict quoting and field-count checks before
+pandas conversion. Duplicate, missing and unknown columns, invalid values and
+inconsistent optional labels are rejected. Validation messages describe the
+repair without echoing private values, IDs, unknown headers or raw tracebacks.
+
+The exact 42 `FEATURE_COLUMNS` are listed in the page's required-columns
+expander. Only `id`, `event_time`, `label`, `attack_cat` are optional. Supplied
+IDs stay text (including leading zeros), are trimmed and must be non-null,
+non-empty and unique. Absent IDs become `record-000001` etc. Timestamps require
+ISO 8601 with an explicit offset and are normalized to UTC. Label/family rules
+are unchanged; labels are validated but never used for error analysis here.
+
+Before scoring, unknown categorical row counts are shown separately for each
+model and each applicable feature. Values themselves are not echoed in the
+warning. The verified fitted `OneHotEncoder(handle_unknown="ignore")` maps
+unknown categories to all-zero indicators for that categorical feature; no
+vocabulary, preprocessing or classification rule is altered.
+
+The application holds validated features and predictions only in the owning
+Streamlit session. It never writes upload bytes, raw rows or predictions to
+disk or application logs, derives a path from the uploaded filename, or places
+session data/models in global caches. Streamlit's uploader holds bytes in
+memory; analysis holds a validated frame and provenance-bound results.
+
+Replacement (including a new upload of the same bytes), invalid replacement,
+removal, changed pack binding, invalid pack, analysis failure and **Clear
+analysis** remove the previous result and all derived counts/selections/views.
+Clear also replaces the uploader widget with an empty one. Input SHA-256 and
+model-pack ID must match before a result can be displayed. Widget state uses a
+new revision after invalidation, avoiding stale selections and filters. Sessions
+do not share uploaded data or predictions. Navigation can discard Streamlit's
+uploader widget, so returning with no upload clears completed analysis.
+
+Clear drops application references; it is **not secure memory erasure**.
+Python, Streamlit and the allocator may retain copies until memory is reclaimed
+or the process ends. This is a local offline research UI, without authentication
+or a remote/multi-user deployment claim.
+
+## Research queue and record views
+
+Each row displays its original record sequence, stable ID, binary prediction,
+**Attack model score (uncalibrated)**, independent raw attack-family prediction,
+**Family model score (uncalibrated)**, triage family, queue band and pack ID.
+Independent family output is retained even when binary says normal.
+
+The frozen policy remains:
+
+| Band | Rule |
+|---|---|
+| `not_alerted` | Binary normal, regardless of raw family output |
+| `model_disagreement` | Binary attack + raw family normal |
+| `review` | Other binary attacks with attack score below 0.90 |
+| `higher_score_review` | Other binary attacks with attack score at least 0.90 |
+
+Bands organize research review, not threat severity or business risk. The
+broader **Models disagree (either direction)** indicator also includes binary
+normal + raw attack family; those records stay `not_alerted`. The 0.90 boundary
+is frozen display policy and does not change classification.
+
+Counts cover each queue band, both binary predictions and broader disagreements.
+Filters select bands, binary outputs and disagreements. Ordering is original
+sequence, descending uncalibrated attack score, or UTC timestamp when supplied.
+Ties preserve original sequence. Filtering/sorting carries original row indices,
+keeping IDs, outputs and selected features aligned. There is no fabricated time:
+without `event_time` the view says **Record sequence**; with it, the page labels
+a **Timestamp view** and **Timestamp (UTC)**. Tables show at most 200 records per
+page and detail selection is limited to that page. Detail shows one result and
+42 aligned features; strings longer than 200 characters are truncated only for
+display. Full identities remain in session and selection uses original indices.
+
+Streamlit's built-in table CSV download and clipboard-copy actions are disabled
+by `client.disableDataExport = true`. The analysis page refuses to render data
+if that control is off, and clears previous results. Launches from outside the
+repository must pass `--client.disableDataExport true`.
+
+No uploaded prediction is called a true/false positive or measured detection.
+There are no label-backed errors, threshold controls, exports or attribution
+controls; `explanation_status` stays `not_requested`. Phase 3D is the next
+milestone after Phase 3C PR merge and has not started. Explanations remain
+Phase 4; packaging/release remain Phase 5.
 
 ## Degraded states
 
@@ -129,7 +247,8 @@ src/cids/workbench/              # Framework-independent services
 ├── catalog.py                   # Component loading, digest bindings, health
 ├── reporting.py                 # Stages, metric definitions, traceable values
 ├── confusion.py                 # Confusion matrices and consistency checks
-└── formatting.py                # Deterministic text formatting
+├── formatting.py                # Deterministic text formatting
+└── analysis.py                  # Session lifecycle, binding and bounded queue indices (3C)
 ```
 
 The design document placed page code in `dashboard/`; it lives in
@@ -145,8 +264,8 @@ cached, so an on-disk change can never be masked by stale memory.
 pytest -q
 ```
 
-Non-UI logic is tested in every CI environment. `tests/test_dashboard_app.py`
-uses Streamlit's `AppTest` to render every page from committed evidence and in
+Non-UI logic is tested in every CI environment. `tests/test_dashboard_app.py` and `tests/test_dashboard_analysis.py`
+use Streamlit's `AppTest` to render every page from committed evidence and in
 degraded states; it is skipped where Streamlit is not installed and runs in the
 `dashboard-phase-2` CI job. The tests also check that:
 
@@ -157,6 +276,60 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 - the app refuses to render when bound beyond loopback or with telemetry on;
 - a matching edit to per-class and macro F1 is still detected, and a code defect
   in the consistency checks raises instead of being reported as bad evidence.
+
+## Validation performed for Phase 3C (2026-10-04)
+
+Implementer-reported local verification follows. All four existing local
+environments used Python **3.12.14**. Full suites ran
+with `CIDS_PHASE3B_TRAINING_CSV=/private/tmp/cids-phase3b-training.csv` so the
+optional original-pack gate actually executed in each pinned model environment.
+
+| Environment | Full suite | Exact skips |
+|---|---|---|
+| Base (`/private/tmp/cids-phase3b-base`) | 272 passed, 58 skipped | 53 pinned-runtime model cases; 3 Streamlit checks/modules; 2 SHAP checks/modules |
+| Reproduction (`/private/tmp/cids-phase3b-reproduction`) | 325 passed, 5 skipped | 3 Streamlit checks/modules; 2 SHAP checks/modules |
+| Workbench (`/private/tmp/cids-phase3b-workbench`) | 334 passed, 3 skipped | 3 Streamlit checks/modules |
+| Dashboard (`/private/tmp/cids-phase3b-dashboard`) | 394 passed, no skips | None |
+
+The three Streamlit skips outside the dashboard environment are
+`test_dashboard_app.py`, `test_dashboard_analysis.py`, and the dashboard-control
+check in `test_workbench_model_pack_registration.py`. The two SHAP skips are
+`test_workbench_explanations.py` and the gate-version check in
+`test_workbench_gate_evidence.py`. Base runtime skips are the 53 parametrized
+cases in `test_workbench_inference.py`; its installed model libraries do not
+match the pinned pack runtime. Pinned workbench/dashboard inference tests
+executed. Every full suite emitted one existing loky physical-core-discovery
+warning, falling back to logical cores; this was not a failure or skip.
+
+Focused contract/session/UI/inference verification: **118 passed, no skips**.
+All four environments passed `python -m pip check`; `git diff --check` passed.
+The four existing CI jobs and dependency locks were preserved. These are the
+implementer's local results, separate from the independent review below.
+
+The registered original pack `e2d4f329b894a1b68b70af377ffc94441e02d024de27e7c351384d3e25692b18`
+passed both direct inference and the Streamlit AppTest analysis page on exactly
+**16 training-partition rows**, with identical `PredictionRecord` tuples and
+unchanged results on a display rerun. Before parsing those rows, the source
+copy's 32,293,018-byte size and SHA-256
+`bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa`
+were verified against the committed training manifest. No official-test raw
+file or record was accessed or scored, and no frozen evidence was edited.
+
+A temporary configured-pack server passed `/_stcore/health` (`ok`) and `lsof`
+confirmed `127.0.0.1:8503` only. Analysis interactions were verified through
+AppTest; real-browser visual inspection of the new page was not performed
+(the browser surface was unavailable). Clear removes references rather than
+securely erasing memory.
+
+Phase 3C was pushed and independently reviewed at
+`b60a703b52a24ebef3e3903b51408d1151968baa`, with **no blocking findings**.
+Independent tests: **391 passed / 3 skipped**; dependency check passed.
+All four GitHub CI jobs (`test`, `reproduction-environment`, `workbench-phase-1`,
+`dashboard-phase-2`) passed on that commit. The independent reviewer could not
+repeat original-model integration checks requiring ignored local artifacts;
+the original-pack checks above remain separately reported by the implementer.
+New-page browser visual QA remains unperformed. Phase 3C awaits PR merge;
+Phase 3D is next after merge and has not started.
 
 ## Validation performed for Phase 2
 
@@ -180,9 +353,9 @@ degraded states; it is skipped where Streamlit is not installed and runs in the
 
 ## Known limitations
 
-- Evidence mode only. No trusted inference, upload, review queue, or export
-  (Phases 3B–3D). Phase 3A adds only command-line model-pack registration,
-  which the dashboard cannot reach.
+- Local analysis requires an already registered original pack and the exact
+  pinned runtime. Clean clones provide evidence mode and a disabled analysis
+  page. No label-backed error review, threshold simulation or export (3D).
 - No feature attributions. The gate report stores diagnostics only; global and
   per-record explanations are Phase 4.
 - The official-test report records artifact filenames but not artifact hashes;

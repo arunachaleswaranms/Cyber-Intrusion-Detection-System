@@ -56,11 +56,16 @@ def current_palette() -> Palette:
     return palette_for(st.context.theme.type)
 
 
-def research_notice() -> None:
+def research_notice(*, local_analysis: bool = False) -> None:
     st.caption(
         ":material/science: **Offline research artifact, not a production IDS.** "
-        "Results describe frozen v2.0 models on the synthetic UNSW-NB15 dataset. "
-        "Nothing here inspects live traffic, blocks connections, or loads a model."
+        + (
+            "Uploaded predictions are offline research outputs, separate from the frozen benchmark. "
+            "Nothing here inspects live traffic or blocks connections."
+            if local_analysis else
+            "Results describe frozen v2.0 models on the synthetic UNSW-NB15 dataset. "
+            "Evidence pages do not inspect live traffic, block connections, or load a model."
+        )
     )
 
 
