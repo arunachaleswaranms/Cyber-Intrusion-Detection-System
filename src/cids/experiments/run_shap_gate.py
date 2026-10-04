@@ -27,6 +27,7 @@ from cids.workbench.config import (
     workbench_config_sha256,
 )
 from cids.workbench.explanations import run_explanation_gate
+from cids.workbench.sampling import _rank, _stratified_sample
 from cids.workbench.model_pack import (
     EXPECTED_CONTRACTS_BASE,
     EXPECTED_RUNTIME,
@@ -47,28 +48,6 @@ def _sha256(path: Path) -> str:
         while chunk := stream.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def _rank(task: str, row_id: object) -> str:
-    return hashlib.sha256(f"{GATE_VERSION}|{task}|{row_id}".encode()).hexdigest()
-
-
-def _stratified_sample(frame: pd.DataFrame, task: str, size: int) -> pd.DataFrame:
-    target = target_for_task(task)
-    if size <= 0 or frame.empty:
-        raise ShapGateCliError("SHAP sample requires positive size and non-empty data")
-    ranked_groups: dict[object, list[int]] = {}
-    for label, group in frame.groupby(target, sort=True):
-        ranked_groups[label] = sorted(
-            group.index, key=lambda index: _rank(task, frame.at[index, ID_COLUMN])
-        )
-    chosen = [indices[0] for indices in ranked_groups.values()]
-    remaining = [
-        index for indices in ranked_groups.values() for index in indices[1:]
-    ]
-    remaining.sort(key=lambda index: _rank(task, frame.at[index, ID_COLUMN]))
-    selected = (chosen + remaining)[: min(size, len(frame))]
-    return frame.loc[selected].sort_values(ID_COLUMN).reset_index(drop=True)
 
 
 def _trusted_artifact_path(path: Path) -> Path:

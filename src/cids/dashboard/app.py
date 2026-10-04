@@ -74,6 +74,9 @@ def _analysis_session(repo_root):
     session = st.session_state.local_analysis
     pack_id = os.environ.get(PACK_ENV)
     session.bind(Path(repo_root), pack_id)
+    from cids.workbench.explanation_resources import RESOURCE_ENV
+
+    session.bind_explanation_resource(os.environ.get(RESOURCE_ENV))
     return session, pack_id
 
 
@@ -182,7 +185,8 @@ def main(repo_root: str | Path = REPO_ROOT) -> None:
     sections["Local analysis"] = [st.Page(
         lambda: _render_analysis(repo_root), title="Local CSV analysis",
         icon=":material/upload_file:", url_path="analysis",
-    )]
+    ), st.Page(lambda: _render_sample(repo_root), title="Synthetic feature sample",
+               icon=":material/science:", url_path="sample")]
     navigation = st.navigation(sections)
     _sidebar(catalog)
     navigation.run()
@@ -190,6 +194,11 @@ def main(repo_root: str | Path = REPO_ROOT) -> None:
 
 def render_single_page(key: str, repo_root: str | Path = REPO_ROOT) -> None:
     """Render one page without navigation; used by the Streamlit test harness."""
+    if key == "sample":
+        _configure()
+        _enforce_local_only()
+        _render_sample(repo_root)
+        return
     if key == "analysis":
         _configure()
         _enforce_local_only()
@@ -204,3 +213,10 @@ def render_single_page(key: str, repo_root: str | Path = REPO_ROOT) -> None:
     _sidebar(catalog)
     research_notice()
     _render_guarded(specs[key], catalog)
+
+
+def _render_sample(repo_root):
+    from cids.dashboard.views.sample import render
+
+    research_notice(local_analysis=True)
+    render(Path(repo_root))

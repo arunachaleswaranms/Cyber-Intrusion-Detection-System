@@ -7,7 +7,9 @@ from time import perf_counter
 
 import numpy as np
 
-from cids.datasets.unsw_nb15 import FEATURE_COLUMNS, NUMERIC_FEATURES
+from cids.datasets.unsw_nb15 import (
+    ATTACK_FAMILIES, FEATURE_COLUMNS, NUMERIC_FEATURES, validate_model_feature_frame,
+)
 from cids.final_evaluation import FinalModelArtifact, validate_artifact
 from cids.modeling.supervised import model_features_for_estimator
 from cids.preprocessing import output_feature_names, transform_partition
@@ -87,7 +89,9 @@ def aggregate_to_source_features(
 ) -> np.ndarray:
     """Sum one-hot contributions into the ordered original feature vocabulary."""
     values = np.asarray(shap_values, dtype=float)
-    if values.ndim not in {2, 3} or values.shape[1] != len(mapping):
+    if (values.ndim not in {2, 3} or values.shape[1] != len(mapping)
+            or not np.isfinite(values).all() or any(s not in FEATURE_COLUMNS for s in mapping)
+            or set(mapping) != set(FEATURE_COLUMNS)):
         raise ExplanationGateError("SHAP values have an incompatible feature axis")
     trailing = values.shape[2:]
     aggregated = np.zeros((values.shape[0], len(FEATURE_COLUMNS), *trailing))
@@ -104,7 +108,96 @@ def _maximum_error(left: np.ndarray, right: np.ndarray) -> float:
         raise ExplanationGateError(
             f"explanation output shape mismatch: {left.shape} != {right.shape}"
         )
+    if not np.isfinite(left).all() or not np.isfinite(right).all():
+        raise ExplanationGateError("explanation contains non-finite values")
     return float(np.max(np.abs(left - right))) if left.size else 0.0
+
+
+def _permutation_values(artifact, background, foreground, policy):
+    """The accepted method, shared by the historical gate and runtime service."""
+    import shap
+
+    if shap.__version__ != policy["shap_version"]:
+        raise ExplanationGateError("SHAP runtime does not match pinned policy")
+    masker = shap.maskers.Independent(background, max_samples=len(background))
+    explainer = shap.PermutationExplainer(
+        lambda values: np.asarray(artifact.estimator.decision_function(values), dtype=float),
+        masker, seed=policy["seed"],
+    )
+    return explainer(foreground, max_evals=policy["permutation_rounds"] *
+                     (2 * foreground.shape[1] + 1), silent=True)
+
+
+def validate_contributions(task, classes, values, bases, raw, mapping, predictions, policy):
+    """Check every class and encoded contribution before selecting display output."""
+    values, bases, raw = (np.asarray(v, dtype=float) for v in (values, bases, raw))
+    classes = tuple(v.item() if isinstance(v, np.generic) else v for v in classes)
+    n, p = len(predictions), len(mapping)
+    if not n or len(set(classes)) != len(classes):
+        raise ExplanationGateError("invalid class mapping")
+    if task == "binary":
+        if (classes != (0, 1) or any(type(c) is not int for c in classes)
+                or values.shape != (n, p) or bases.shape != (n,) or raw.shape != (n,)):
+            raise ExplanationGateError("binary explanation dimensions or classes are incompatible")
+        if tuple(predictions) != tuple((raw > 0).astype(int)):
+            raise ExplanationGateError("binary raw prediction mismatch")
+        positions = [None] * n
+        explained = [1] * n  # Attack output even when the predicted class is normal.
+    elif task == "multiclass":
+        if (len(classes) < 3 or not set(classes).issubset(ATTACK_FAMILIES)
+                or values.shape != (n, p, len(classes))
+                or bases.shape != (n, len(classes)) or raw.shape != bases.shape):
+            raise ExplanationGateError("multiclass explanation dimensions or classes are incompatible")
+        positions = raw.argmax(axis=1).tolist()
+        explained = [classes[i] for i in positions]
+        if tuple(predictions) != tuple(explained):
+            raise ExplanationGateError("independent raw family prediction mismatch")
+    else:
+        raise ExplanationGateError("unsupported explanation task")
+    error = _maximum_error(bases + values.sum(axis=1), raw)
+    if error > policy["additivity_abs_tolerance"]:
+        raise ExplanationGateError("explanation additivity failed")
+    aggregated = aggregate_to_source_features(values, mapping)
+    aggregation_error = _maximum_error(values.sum(axis=1), aggregated.sum(axis=1))
+    if aggregation_error > policy["aggregation_abs_tolerance"]:
+        raise ExplanationGateError("explanation aggregation failed")
+    results = []
+    for i, position in enumerate(positions):
+        results.append({
+            "explained_class": explained[i],
+            "baseline_output": float(bases[i] if position is None else bases[i, position]),
+            "model_output": float(raw[i] if position is None else raw[i, position]),
+            "contributions": (aggregated[i] if position is None else aggregated[i, :, position]).tolist(),
+            "max_additivity_error": error, "max_aggregation_error": aggregation_error,
+        })
+    return results
+
+
+def explain_records(artifact, background_frame, explain_frame):
+    """Compute local contributions inside a cancellable worker, feature-only data.
+
+    The caller must use the verified pack loader and enforce the wall-clock limit
+    with process isolation. This calculation holds no global state or cache.
+    """
+    policy = load_workbench_config()["explainability"]
+    validate_artifact(artifact)
+    if (not 0 < len(background_frame) <= min(256, policy["background_rows"])
+            or not 0 < len(explain_frame) <= policy["max_explain_rows"]):
+        raise ExplanationGateError("explanation inputs exceed bounds")
+    matrices = []
+    for frame in (background_frame, explain_frame):
+        features = validate_model_feature_frame(frame)
+        matrix = model_features_for_estimator(artifact.model_name, artifact.preprocessor.transformer.transform(features))
+        if matrix.ndim != 2 or matrix.shape[1] > 512 or not np.isfinite(matrix).all():
+            raise ExplanationGateError("transformed features exceed supported bounds")
+        matrices.append(matrix)
+    explanation = _permutation_values(artifact, *matrices, policy)
+    foreground = matrices[1]
+    return validate_contributions(
+        artifact.task, artifact.estimator.classes_, explanation.values, explanation.base_values,
+        artifact.estimator.decision_function(foreground), source_feature_mapping(artifact),
+        artifact.estimator.predict(foreground), policy,
+    )
 
 
 def run_explanation_gate(
@@ -146,32 +239,10 @@ def run_explanation_gate(
         artifact.model_name,
         transform_partition(artifact.preprocessor, explain_frame),
     )
-    masker = shap.maskers.Independent(
-        background, max_samples=len(background_frame)
-    )
-    def raw_model_output(values):
-        return np.asarray(artifact.estimator.decision_function(values), dtype=float)
-
-    explainer = shap.PermutationExplainer(
-        raw_model_output,
-        masker,
-        seed=explanation_policy["seed"],
-    )
-    transformed_feature_count = foreground.shape[1]
-    max_evals = (
-        explanation_policy["permutation_rounds"]
-        * (2 * transformed_feature_count + 1)
-    )
     try:
-        explanation = explainer(
-            foreground,
-            max_evals=max_evals,
-            silent=True,
-        )
+        explanation = _permutation_values(artifact, background, foreground, explanation_policy)
     except Exception as exc:
-        raise ExplanationGateError(
-            f"bounded permutation explanation failed: {type(exc).__name__}: {exc}"
-        ) from exc
+        raise ExplanationGateError("bounded permutation explanation failed") from exc
     elapsed = perf_counter() - started
     if elapsed > explanation_policy["max_task_seconds"]:
         raise ExplanationGateError(
